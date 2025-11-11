@@ -51,30 +51,30 @@ fn detect_joysticks() -> Result<Vec<directinput::JoystickInfo>, String> {
 }
 
 #[tauri::command]
-async fn wait_for_input_binding(timeout_secs: u64) -> Result<Option<directinput::DetectedInput>, String> {
+async fn wait_for_input_binding(session_id: String, timeout_secs: u64) -> Result<Option<directinput::DetectedInput>, String> {
     // Run the blocking operation in a separate thread to avoid freezing the UI
     tokio::task::spawn_blocking(move || {
-        directinput::wait_for_input(timeout_secs)
+        directinput::wait_for_input(session_id, timeout_secs)
     })
     .await
     .map_err(|e| format!("Task join error: {}", e))?
 }
 
 #[tauri::command]
-async fn wait_for_multiple_inputs(initial_timeout_secs: u64, collect_duration_secs: u64) -> Result<Vec<directinput::DetectedInput>, String> {
+async fn wait_for_multiple_inputs(session_id: String, initial_timeout_secs: u64, collect_duration_secs: u64) -> Result<Vec<directinput::DetectedInput>, String> {
     // Run the blocking operation in a separate thread to avoid freezing the UI
     tokio::task::spawn_blocking(move || {
-        directinput::wait_for_multiple_inputs(initial_timeout_secs, collect_duration_secs)
+        directinput::wait_for_multiple_inputs(session_id, initial_timeout_secs, collect_duration_secs)
     })
     .await
     .map_err(|e| format!("Task join error: {}", e))?
 }
 
 #[tauri::command]
-async fn wait_for_inputs_with_events(window: tauri::Window, initial_timeout_secs: u64, collect_duration_secs: u64) -> Result<(), String> {
+async fn wait_for_inputs_with_events(window: tauri::Window, session_id: String, initial_timeout_secs: u64, collect_duration_secs: u64) -> Result<(), String> {
     // Run the blocking operation in a separate thread to avoid freezing the UI
     tokio::task::spawn_blocking(move || {
-        directinput::wait_for_inputs_with_events(window, initial_timeout_secs, collect_duration_secs)
+        directinput::wait_for_inputs_with_events(window, session_id, initial_timeout_secs, collect_duration_secs)
     })
     .await
     .map_err(|e| format!("Task join error: {}", e))?

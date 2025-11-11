@@ -212,6 +212,54 @@
 }
 
 /* Zoom Controls */
+.template-controls-panel {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    background: rgba(20, 24, 28, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid #444;
+    border-radius: 8px;
+    padding: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    z-index: 100;
+}
+
+.template-controls-panel .control-group {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.template-controls-panel .stick-selector {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.template-controls-panel .control-divider {
+    width: 1px;
+    height: 28px;
+    background: #444;
+    margin: 0 0.25rem;
+}
+
+/* Control button style overrides for template panel */
+.template-controls-panel .control-btn.btn-success {
+    background: rgba(40, 167, 69, 0.7);
+    border-color: #91e9a5;
+    color: #fff;
+}
+
+.template-controls-panel .control-btn.btn-success:hover {
+    background: rgba(109, 183, 127, 0.9);
+    border-color: #c1dfc8;
+    color: #fff;
+}
+
 .zoom-controls {
     position: absolute;
     bottom: 1rem;

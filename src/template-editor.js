@@ -27,6 +27,7 @@ let pan = { x: 0, y: 0 };
 let selectedButtonId = null;
 let mode = 'view'; // 'view', 'placing-button', 'placing-label'
 let tempButton = null;
+let originalButton = null; // Store original button data for cancel functionality
 let draggingHandle = null;
 let isPanning = false;
 let lastPanPosition = { x: 0, y: 0 };
@@ -37,6 +38,9 @@ const SNAP_GRID = 10; // pixels
 // Joystick input detection
 let detectingInput = false;
 let inputDetectionTimeout = null; // Track timeout to clear it when restarting
+let hatDetectionTimeout = null; // Track hat detection timeout to clear it when restarting
+let currentDetectionSessionId = null; // Track current detection session to prevent race conditions
+let currentHatDetectionSessionId = null; // Track current hat detection session
 
 // Track unsaved changes
 let hasUnsavedChanges = false;
@@ -236,7 +240,6 @@ function getCurrentButtons()
             {
                 templateData.leftStick.buttons = [];
             }
-            console.log('Returning LEFT stick (nested):', templateData.leftStick.buttons.length, 'buttons');
             return templateData.leftStick.buttons;
         }
         // Handle flat array structure: [...]
@@ -244,7 +247,6 @@ function getCurrentButtons()
         {
             templateData.leftStick = [];
         }
-        console.log('Returning LEFT stick (flat):', templateData.leftStick.length, 'buttons');
         return templateData.leftStick;
     }
     else
@@ -256,7 +258,6 @@ function getCurrentButtons()
             {
                 templateData.rightStick.buttons = [];
             }
-            console.log('Returning RIGHT stick (nested):', templateData.rightStick.buttons.length, 'buttons');
             return templateData.rightStick.buttons;
         }
         // Handle flat array structure: [...]
@@ -264,7 +265,6 @@ function getCurrentButtons()
         {
             templateData.rightStick = [];
         }
-        console.log('Returning RIGHT stick (flat):', templateData.rightStick.length, 'buttons');
         return templateData.rightStick;
     }
 }
@@ -1469,8 +1469,10 @@ window.editButtonFromList = function (buttonId)
     const button = buttons.find(b => b.id === buttonId);
     if (!button) return;
 
-    // Set this button as tempButton so the modal can edit it
-    tempButton = button;
+    // Store original button data for cancel functionality
+    originalButton = button;
+    // Create a deep copy for editing
+    tempButton = JSON.parse(JSON.stringify(button));
 
     // Open modal with current values
     document.getElementById('button-modal').style.display = 'flex';
@@ -1598,7 +1600,35 @@ function openButtonModal(button)
 
     // Reset hat detection buttons and displays
     resetHatDetectionButtons();
-    document.querySelectorAll('.hat-id-display').forEach(display => display.textContent = '—'); document.getElementById('button-name-input').focus();
+    document.querySelectorAll('.hat-id-display').forEach(display => display.textContent = '—');
+
+    // Clear any pending timeouts from previous detection session
+    if (inputDetectionTimeout !== null)
+    {
+        clearTimeout(inputDetectionTimeout);
+        inputDetectionTimeout = null;
+    }
+
+    if (hatDetectionTimeout !== null)
+    {
+        clearTimeout(hatDetectionTimeout);
+        hatDetectionTimeout = null;
+    }
+
+    // Reset input detection status display
+    document.getElementById('input-detection-status').style.display = 'none';
+    document.getElementById('input-detection-status').textContent = '';
+    document.getElementById('input-detection-status').style.color = '';
+
+    // Reset hat detection status display
+    document.getElementById('hat-detection-status').style.display = 'none';
+    document.getElementById('hat-detection-status').textContent = '';
+    document.getElementById('hat-detection-status').style.color = '';
+
+    // Reset detectingInput flag
+    detectingInput = false;
+
+    document.getElementById('button-name-input').focus();
 
     // Allow Enter to save
     const input = document.getElementById('button-name-input');
@@ -1631,8 +1661,9 @@ function closeButtonModal()
         redraw();
     }
 
-    // Clear tempButton reference
+    // Clear references (changes are discarded if user canceled)
     tempButton = null;
+    originalButton = null;
 }
 
 async function saveButtonDetails()
@@ -1683,11 +1714,19 @@ async function saveButtonDetails()
             buttons.push(tempButton);
             setCurrentButtons(buttons);
         }
-        // If existing, it's already in the array and we've modified it directly
+        else
+        {
+            // Editing existing button - copy all properties from tempButton to originalButton
+            if (originalButton)
+            {
+                Object.assign(originalButton, tempButton);
+            }
+        }
 
         markAsChanged();
         selectButton(tempButton.id);
         tempButton = null;
+        originalButton = null;
     }
 
     updateButtonList();
@@ -1827,13 +1866,28 @@ async function startHatInputDetection(direction)
     document.getElementById('hat-detection-status').style.display = 'block';
     document.getElementById('hat-detection-status').style.color = '';
 
+    // Generate unique session ID for this detection
+    const thisSessionId = Date.now() + Math.random();
+    currentHatDetectionSessionId = thisSessionId;
+    console.log('[HAT-DETECTION] Starting hat detection session:', thisSessionId, 'for direction:', direction);
+
     try
     {
-        const result = await invoke('wait_for_input_binding', { timeoutSecs: 10 });
+        const result = await invoke('wait_for_input_binding', {
+            timeoutSecs: 10,
+            sessionId: thisSessionId.toString()
+        });
+
+        // Check if this session is still active
+        if (currentHatDetectionSessionId !== thisSessionId)
+        {
+            console.log('[HAT-DETECTION] Session', thisSessionId, 'cancelled, ignoring result');
+            return;
+        }
 
         if (result)
         {
-            console.log('Detected input for', direction, ':', result);
+            console.log('[HAT-DETECTION] Session', thisSessionId, 'detected input for', direction, ':', result);
             console.log('Input string:', result.input_string);
 
             // The Rust backend now returns proper Star Citizen format
@@ -1874,23 +1928,26 @@ async function startHatInputDetection(direction)
                 }
             }
 
-            // Get the emoji for this direction
-            const emoji = { up: '⬆️', down: '⬇️', left: '⬅️', right: '➡️', push: '⬇️' }[direction];
-
             // Use shared utility for display name
             const displayText = parseInputShortName(result.input_string);
 
             // Update button to show it's detected
-            btn.textContent = `${emoji} ✓ (${displayText})`;
-            btn.classList.remove('btn-secondary');
-            btn.classList.add('btn-primary');
+            btn.textContent = `✓ (${displayText})`;
 
             document.getElementById('hat-detection-status').textContent = `${direction}: ${result.display_name}`;
             document.getElementById('hat-detection-status').style.color = '#5cb85c';
-            setTimeout(() =>
+
+            // Clear any existing timeout
+            if (hatDetectionTimeout !== null)
+            {
+                clearTimeout(hatDetectionTimeout);
+            }
+
+            hatDetectionTimeout = setTimeout(() =>
             {
                 document.getElementById('hat-detection-status').style.display = 'none';
                 detectingInput = false; // Clear the flag after the timeout
+                hatDetectionTimeout = null;
             }, 2000);
         }
         else
@@ -1909,6 +1966,12 @@ async function startHatInputDetection(direction)
     }
     finally
     {
+        // Only clear session if this was the active session
+        if (currentHatDetectionSessionId === thisSessionId)
+        {
+            console.log('[HAT-DETECTION] Cleaning up session:', thisSessionId);
+            currentHatDetectionSessionId = null;
+        }
         detectingInput = false;
         btn.disabled = false;
     }
@@ -1930,14 +1993,29 @@ async function startInputDetection()
     document.getElementById('input-detection-status').textContent = 'Press any button or move any axis on your joystick...';
     document.getElementById('input-detection-status').style.display = 'block';
 
+    // Generate unique session ID for this detection
+    const thisSessionId = Date.now() + Math.random();
+    currentDetectionSessionId = thisSessionId;
+    console.log('[INPUT-DETECTION] Starting detection session:', thisSessionId);
+
     try
     {
         // Use the Rust backend to detect input (10 second timeout)
-        const result = await invoke('wait_for_input_binding', { timeoutSecs: 10 });
+        const result = await invoke('wait_for_input_binding', {
+            timeoutSecs: 10,
+            sessionId: thisSessionId.toString()
+        });
+
+        // Check if this session is still active
+        if (currentDetectionSessionId !== thisSessionId)
+        {
+            console.log('[INPUT-DETECTION] Session', thisSessionId, 'cancelled, ignoring result');
+            return;
+        }
 
         if (result)
         {
-            console.log('Detected input:', result);
+            console.log('[INPUT-DETECTION] Session', thisSessionId, 'detected input:', result);
             console.log('Input string:', result.input_string);
 
             // The Rust backend now returns proper Star Citizen format
@@ -2027,6 +2105,12 @@ async function startInputDetection()
     }
     finally
     {
+        // Only clear session if this was the active session
+        if (currentDetectionSessionId === thisSessionId)
+        {
+            console.log('[INPUT-DETECTION] Cleaning up session:', thisSessionId);
+            currentDetectionSessionId = null;
+        }
         detectingInput = false;
         document.getElementById('button-modal-detect').textContent = '🎮 Detect Input';
         document.getElementById('button-modal-detect').classList.remove('btn-primary');
@@ -2036,12 +2120,23 @@ async function startInputDetection()
 
 function stopInputDetection()
 {
-    // Clear any pending timeout
+    // Clear any pending timeouts
     if (inputDetectionTimeout !== null)
     {
         clearTimeout(inputDetectionTimeout);
         inputDetectionTimeout = null;
     }
+
+    if (hatDetectionTimeout !== null)
+    {
+        clearTimeout(hatDetectionTimeout);
+        hatDetectionTimeout = null;
+    }
+
+    // Clear session IDs to invalidate any pending operations
+    console.log('[INPUT-DETECTION] Stopping detection, clearing sessions');
+    currentDetectionSessionId = null;
+    currentHatDetectionSessionId = null;
 
     detectingInput = false;
     document.getElementById('button-modal-detect').textContent = '🎮 Detect Input';
@@ -2404,18 +2499,28 @@ function updateHatDetectionButtons(inputs)
 {
     Object.keys(inputs).forEach(direction =>
     {
-        const inputString = inputs[direction];
-        const btn = document.querySelector(`[data-direction="${direction}"]`);
-        if (btn && inputString)
+        const input = inputs[direction];
+        const btn = document.querySelector(`[data-direction="${direction}"].hat-detect-btn`);
+        if (btn && input)
         {
             const emoji = { up: '⬆️', down: '⬇️', left: '⬅️', right: '➡️', push: '⬇️' }[direction];
 
-            // Use shared utility for display name
-            const displayText = parseInputShortName(inputString);
+            // Handle both string format (js1_button3) and object format ({id: 3})
+            let displayText = '';
+            if (typeof input === 'string')
+            {
+                displayText = parseInputShortName(input);
+            }
+            else if (typeof input === 'object' && input.id !== undefined)
+            {
+                displayText = `Btn ${input.id}`;
+            }
+            else
+            {
+                return; // Skip if we can't parse it
+            }
 
             btn.textContent = `${emoji} ✓ (${displayText})`;
-            btn.classList.remove('btn-secondary');
-            btn.classList.add('btn-primary');
         }
     });
 }

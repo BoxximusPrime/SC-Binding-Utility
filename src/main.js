@@ -17,6 +17,7 @@ let searchTerm = '';
 let bindingMode = false;
 let currentBindingAction = null;
 let countdownInterval = null;
+let keyboardCompletionTimeout = null;
 let hasUnsavedChanges = false;
 let customizedOnly = false;
 let currentTab = 'main';
@@ -416,7 +417,7 @@ function initializeEventListeners()
   });
 
   // Filter buttons
-  const filterBtns = document.querySelectorAll('.filter-btn');
+  const filterBtns = document.querySelectorAll('.filter-section .category-item');
   if (filterBtns.length > 0)
   {
     filterBtns.forEach(btn =>
@@ -952,10 +953,40 @@ function renderKeybindings()
       // Use ui_label if available, otherwise display_name
       const displayName = action.ui_label || action.display_name || action.name;
 
-      // Customized only filter - if checked, skip actions without customized bindings
-      if (customizedOnly && !action.is_customized)
+      // Input type filter
+      if (currentFilter !== 'all')
       {
-        return false;
+        const hasMatchingBinding = action.bindings && action.bindings.some(binding =>
+        {
+          if (currentFilter === 'keyboard') return binding.input_type === 'Keyboard';
+          if (currentFilter === 'mouse') return binding.input_type === 'Mouse';
+          if (currentFilter === 'joystick') return binding.input_type === 'Joystick';
+          return true;
+        });
+
+        if (!hasMatchingBinding) return false;
+      }
+
+      // Customized only filter - if checked, skip actions without customized bindings for the current device type
+      if (customizedOnly)
+      {
+        const hasCustomizedBinding = action.bindings && action.bindings.some(binding =>
+        {
+          // Check if this binding is customized (not default)
+          if (binding.is_default) return false;
+
+          // If a specific device type is selected, only count customizations for that type
+          if (currentFilter !== 'all')
+          {
+            if (currentFilter === 'keyboard' && binding.input_type !== 'Keyboard') return false;
+            if (currentFilter === 'mouse' && binding.input_type !== 'Mouse') return false;
+            if (currentFilter === 'joystick' && binding.input_type !== 'Joystick') return false;
+          }
+
+          return true;
+        });
+
+        if (!hasCustomizedBinding) return false;
       }
 
       // Search filter - search in action name AND binding names
@@ -973,20 +1004,6 @@ function renderKeybindings()
         {
           return false;
         }
-      }
-
-      // Input type filter
-      if (currentFilter !== 'all')
-      {
-        const hasMatchingBinding = action.bindings && action.bindings.some(binding =>
-        {
-          if (currentFilter === 'keyboard') return binding.input_type === 'Keyboard';
-          if (currentFilter === 'mouse') return binding.input_type === 'Mouse';
-          if (currentFilter === 'joystick') return binding.input_type === 'Joystick';
-          return true;
-        });
-
-        if (!hasMatchingBinding) return false;
       }
 
       return true;
@@ -1141,6 +1158,7 @@ async function startBinding(actionMapName, actionName, actionDisplayName)
 {
   // Generate unique ID for this binding attempt to ignore stale events
   currentBindingId = Date.now() + Math.random();
+  console.log('[TIMER] startBinding called for:', actionDisplayName, 'new currentBindingId:', currentBindingId);
 
   // Mark any previous detection as inactive
   isDetectionActive = false;
@@ -1148,8 +1166,21 @@ async function startBinding(actionMapName, actionName, actionDisplayName)
   // Clear any existing countdown timer first
   if (countdownInterval)
   {
+    console.log('[TIMER] Clearing existing countdownInterval at start of startBinding, ID:', countdownInterval);
     clearInterval(countdownInterval);
     countdownInterval = null;
+  }
+  else
+  {
+    console.log('[TIMER] No existing countdownInterval to clear at start of startBinding');
+  }
+
+  // Clear any existing keyboard completion timeout
+  if (keyboardCompletionTimeout)
+  {
+    console.log('[TIMER] Clearing existing keyboardCompletionTimeout at start of startBinding');
+    clearTimeout(keyboardCompletionTimeout);
+    keyboardCompletionTimeout = null;
   }
 
   // Clean up any leftover listeners from previous binding attempts
@@ -1183,7 +1214,7 @@ async function startBinding(actionMapName, actionName, actionDisplayName)
   modal.style.display = 'flex';
 
   document.getElementById('binding-modal-action').textContent = actionDisplayName;
-  document.getElementById('binding-modal-status').textContent = 'Press any button, key, or move any axis...';
+  document.getElementById('binding-modal-status').textContent = 'Press any button, key, mouse button, or move any axis...';
 
   // Start countdown
   const countdown = 10;
@@ -1191,16 +1222,24 @@ async function startBinding(actionMapName, actionName, actionDisplayName)
   const countdownEl = document.getElementById('binding-modal-countdown');
   countdownEl.textContent = countdown;
 
-  countdownInterval = setInterval(() =>
+  console.log('[TIMER] Starting new countdownInterval for binding:', actionDisplayName);
+  const intervalId = setInterval(() =>
   {
     remaining--;
+    console.log('[TIMER] Countdown tick:', remaining, 'intervalId:', intervalId);
     countdownEl.textContent = remaining;
     if (remaining <= 0)
     {
-      clearInterval(countdownInterval);
-      countdownInterval = null;
+      console.log('[TIMER] Countdown reached 0, clearing interval:', intervalId);
+      clearInterval(intervalId);
+      if (countdownInterval === intervalId)
+      {
+        countdownInterval = null;
+      }
     }
   }, 1000);
+  countdownInterval = intervalId;
+  console.log('[TIMER] countdownInterval ID assigned:', countdownInterval);
 
   try
   {
@@ -1214,7 +1253,249 @@ async function startBinding(actionMapName, actionName, actionDisplayName)
 
     // Activate keyboard detection
     keyboardDetectionActive = true;
-    let keyboardCompletionTimeout = null;
+
+    // Activate mouse button detection
+    let mouseDetectionActive = true;
+    let mouseDetectionHandler = null;
+
+    // Create mouse event handler
+    mouseDetectionHandler = (event) =>
+    {
+      if (!window.mouseDetectionActive) return;
+
+      // Only capture mouse events within the modal itself
+      const modal = document.getElementById('binding-modal');
+      if (!modal.contains(event.target)) return;
+
+      // Prevent default browser behavior
+      event.preventDefault();
+      event.stopPropagation();
+
+      // Map mouse button numbers to Star Citizen format
+      const buttonMap = {
+        0: 'mouse1',  // Left button
+        1: 'mouse3',  // Middle button
+        2: 'mouse2',  // Right button
+        3: 'mouse4',  // Side button (back)
+        4: 'mouse5'   // Side button (forward)
+      };
+
+      const scButton = buttonMap[event.button] || `mouse${event.button + 1}`;
+
+      // Build the input string (mouse format)
+      const inputString = scButton;
+
+      // Build display name
+      const buttonNames = {
+        'mouse1': 'Left Mouse Button',
+        'mouse2': 'Right Mouse Button',
+        'mouse3': 'Middle Mouse Button',
+        'mouse4': 'Mouse Button 4',
+        'mouse5': 'Mouse Button 5'
+      };
+      const displayName = buttonNames[scButton] || `Mouse Button ${event.button}`;
+
+      // Create a synthetic event that matches the structure from Rust backend
+      const syntheticResult = {
+        input_string: inputString,
+        display_name: displayName,
+        device_type: 'Mouse',
+        axis_value: null,
+        modifiers: [],
+        is_modifier: false
+      };
+
+      // Process this mouse input through the same pipeline
+      const processed = processInput(syntheticResult);
+
+      if (processed && !allDetectedInputs.has(processed.scFormattedInput))
+      {
+        allDetectedInputs.set(processed.scFormattedInput, processed);
+
+        if (allDetectedInputs.size === 1)
+        {
+          // First input detected - show it with confirm/cancel buttons
+          statusEl.textContent = `Detected: ${processed.displayName}`;
+
+          // Stop the main countdown timer
+          if (countdownInterval)
+          {
+            console.log('[TIMER] [MOUSE] Clearing countdownInterval after first input, ID:', countdownInterval);
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+          }
+          else
+          {
+            console.log('[TIMER] [MOUSE] countdownInterval already null!');
+          }
+          document.getElementById('binding-modal-countdown').textContent = '';
+
+          // Create confirm/cancel UI
+          const confirmUI = document.createElement('div');
+          confirmUI.className = 'input-confirm-container';
+          confirmUI.innerHTML = `
+            <button class="btn btn-primary" id="confirm-single-input">✓ Use This Input</button>
+            <div class="input-confirm-note">Or press another input within 1 second to choose...</div>
+          `;
+          statusEl.appendChild(confirmUI);
+
+          // Confirm button handler
+          document.getElementById('confirm-single-input').addEventListener('click', async () =>
+          {
+            // Mark detection as inactive to ignore any pending events
+            isDetectionActive = false;
+
+            // Clean up ALL timers and listeners
+            if (keyboardCompletionTimeout)
+            {
+              clearTimeout(keyboardCompletionTimeout);
+              keyboardCompletionTimeout = null;
+            }
+            if (countdownInterval)
+            {
+              clearInterval(countdownInterval);
+              countdownInterval = null;
+            }
+            keyboardDetectionActive = false;
+            mouseDetectionActive = false;
+            if (keyboardDetectionHandler)
+            {
+              document.removeEventListener('keydown', keyboardDetectionHandler, true);
+              keyboardDetectionHandler = null;
+            }
+            if (mouseDetectionHandler)
+            {
+              document.removeEventListener('mousedown', mouseDetectionHandler, true);
+              document.removeEventListener('contextmenu', contextMenuHandler, true);
+              mouseDetectionHandler = null;
+            }
+            if (window.currentInputDetectionUnlisten)
+            {
+              window.currentInputDetectionUnlisten();
+              window.currentInputDetectionUnlisten = null;
+            }
+            if (window.currentCompletionUnlisten)
+            {
+              window.currentCompletionUnlisten();
+              window.currentCompletionUnlisten = null;
+            }
+
+            const [, singleInput] = Array.from(allDetectedInputs.entries())[0];
+
+            // Check for conflicts
+            const conflicts = await invoke('find_conflicting_bindings', {
+              input: singleInput.scFormattedInput,
+              excludeActionMap: actionMapName,
+              excludeAction: actionName
+            });
+
+            if (conflicts.length > 0)
+            {
+              window.pendingBinding = {
+                actionMapName,
+                actionName,
+                mappedInput: singleInput.scFormattedInput,
+                displayName: singleInput.displayName
+              };
+              showConflictModal(conflicts);
+              return;
+            }
+
+            // No conflicts, proceed with binding
+            await applyBinding(actionMapName, actionName, singleInput.scFormattedInput);
+          });
+
+          // Start a 1-second timer to auto-show selection UI if more inputs come
+          if (keyboardCompletionTimeout) clearTimeout(keyboardCompletionTimeout);
+          keyboardCompletionTimeout = setTimeout(() =>
+          {
+            // After 1 second with no more inputs, just leave the confirm UI showing
+            keyboardCompletionTimeout = null;
+          }, 1000);
+        }
+        else if (allDetectedInputs.size === 2)
+        {
+          // Second input detected - remove confirm UI and switch to selection UI
+          if (keyboardCompletionTimeout)
+          {
+            clearTimeout(keyboardCompletionTimeout);
+            keyboardCompletionTimeout = null;
+          }
+
+          // Stop the main countdown timer if still running
+          if (countdownInterval)
+          {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+          }
+
+          // Clear any existing UI and show selection
+          statusEl.innerHTML = '';
+          statusEl.textContent = 'Multiple inputs detected - select one:';
+          document.getElementById('binding-modal-countdown').textContent = '';
+
+          selectionContainer = document.createElement('div');
+          selectionContainer.className = 'input-selection-container';
+          statusEl.appendChild(selectionContainer);
+
+          // Add both inputs
+          Array.from(allDetectedInputs.values()).forEach((input) =>
+          {
+            addDetectedInputButton(input);
+          });
+        }
+        else
+        {
+          // More inputs - just add the new button
+          addDetectedInputButton(processed);
+        }
+      }
+    };
+
+    // Prevent right-click context menu during recording
+    const contextMenuHandler = (event) =>
+    {
+      if (!window.mouseDetectionActive) return;
+      const modal = document.getElementById('binding-modal');
+      if (!modal.contains(event.target)) return;
+      event.preventDefault();
+    };
+
+    // Prevent browser navigation for back/forward buttons
+    const mouseUpHandler = (event) =>
+    {
+      if (!window.mouseDetectionActive) return;
+      const modal = document.getElementById('binding-modal');
+      if (!modal.contains(event.target)) return;
+
+      // Prevent default for buttons 3 and 4 (back/forward)
+      if (event.button === 3 || event.button === 4)
+      {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+
+    // Prevent beforeunload navigation during recording
+    const beforeUnloadHandler = (event) =>
+    {
+      if (!window.mouseDetectionActive) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    // Store handlers on window for cleanup
+    window.mouseDetectionHandler = mouseDetectionHandler;
+    window.contextMenuHandler = contextMenuHandler;
+    window.mouseUpHandler = mouseUpHandler;
+    window.beforeUnloadHandler = beforeUnloadHandler;
+    window.mouseDetectionActive = mouseDetectionActive;
+
+    // Add mouse listeners (capture phase)
+    document.addEventListener('mousedown', mouseDetectionHandler, true);
+    document.addEventListener('mouseup', mouseUpHandler, true);
+    document.addEventListener('contextmenu', contextMenuHandler, true);
+    window.addEventListener('beforeunload', beforeUnloadHandler, true);
 
     // Create keyboard event handler
     keyboardDetectionHandler = (event) =>
@@ -1277,8 +1558,13 @@ async function startBinding(actionMapName, actionName, actionDisplayName)
           // Stop the main countdown timer
           if (countdownInterval)
           {
+            console.log('[TIMER] [KEYBOARD] Clearing countdownInterval after first input, ID:', countdownInterval);
             clearInterval(countdownInterval);
             countdownInterval = null;
+          }
+          else
+          {
+            console.log('[TIMER] [KEYBOARD] countdownInterval already null!');
           }
           document.getElementById('binding-modal-countdown').textContent = '';
 
@@ -1309,10 +1595,19 @@ async function startBinding(actionMapName, actionName, actionDisplayName)
               countdownInterval = null;
             }
             keyboardDetectionActive = false;
+            window.mouseDetectionActive = false;
             if (keyboardDetectionHandler)
             {
               document.removeEventListener('keydown', keyboardDetectionHandler, true);
               keyboardDetectionHandler = null;
+            }
+            if (mouseDetectionHandler)
+            {
+              document.removeEventListener('mousedown', mouseDetectionHandler, true);
+              document.removeEventListener('mouseup', window.mouseUpHandler, true);
+              document.removeEventListener('contextmenu', contextMenuHandler, true);
+              window.removeEventListener('beforeunload', window.beforeUnloadHandler, true);
+              mouseDetectionHandler = null;
             }
             if (window.currentInputDetectionUnlisten)
             {
@@ -1545,8 +1840,21 @@ async function startBinding(actionMapName, actionName, actionDisplayName)
     // Listen for input-detected events (from joystick/backend)
     const unlistenInputs = await listen('input-detected', (event) =>
     {
+      console.log('[TIMER] [EVENT] input-detected received, session_id:', event.payload.session_id, 'thisBindingId:', thisBindingId.toString());
+
+      // Ignore if this event is from a previous binding attempt (check session ID)
+      if (event.payload.session_id !== thisBindingId.toString())
+      {
+        console.log('[TIMER] [EVENT] Ignoring stale input-detected event (session ID mismatch)');
+        return;
+      }
+
       // Ignore if this event is from a previous binding attempt
-      if (currentBindingId !== thisBindingId) return;
+      if (currentBindingId !== thisBindingId)
+      {
+        console.log('[TIMER] [EVENT] Ignoring stale input-detected event (binding ID mismatch)');
+        return;
+      }
 
       const result = event.payload;
       const processed = processInput(result);
@@ -1679,15 +1987,38 @@ async function startBinding(actionMapName, actionName, actionDisplayName)
     window.currentInputDetectionUnlisten = unlistenInputs;
 
     // Listen for completion event
-    const unlistenCompletion = await listen('input-detection-complete', async () =>
+    const unlistenCompletion = await listen('input-detection-complete', async (event) =>
     {
+      console.log('[TIMER] [EVENT] input-detection-complete received, session_id:', event.payload?.session_id, 'thisBindingId:', thisBindingId.toString(), 'currentBindingId:', currentBindingId, 'isDetectionActive:', isDetectionActive);
+
+      // Ignore if this event is from a previous binding attempt (check session ID)
+      if (event.payload?.session_id !== thisBindingId.toString())
+      {
+        console.log('[TIMER] [EVENT] Ignoring stale input-detection-complete event (session ID mismatch)');
+        return;
+      }
+
       // Ignore if this event is from a previous binding attempt
-      if (currentBindingId !== thisBindingId) return;
+      if (currentBindingId !== thisBindingId)
+      {
+        console.log('[TIMER] [EVENT] Ignoring stale input-detection-complete event (ID mismatch)');
+        return;
+      }      // Ignore if detection was already completed/cancelled
+      if (!isDetectionActive)
+      {
+        console.log('[TIMER] [EVENT] Ignoring input-detection-complete, detection not active');
+        return;
+      }
 
-      // Ignore if detection was already completed/cancelled
-      if (!isDetectionActive) return;
+      // Double-check the modal is still visible and we're still in binding mode
+      const modal = document.getElementById('binding-modal');
+      if (!modal || modal.style.display === 'none' || !bindingMode)
+      {
+        console.log('[TIMER] [EVENT] Ignoring input-detection-complete, modal not visible or not in binding mode');
+        return;
+      }
 
-      // Mark as inactive
+      console.log('[TIMER] [EVENT] Processing input-detection-complete event');      // Mark as inactive
       isDetectionActive = false;
 
       // Clear timer
@@ -1717,14 +2048,38 @@ async function startBinding(actionMapName, actionName, actionDisplayName)
       }
       keyboardDetectionActive = false;
 
+      // Cleanup mouse detection
+      if (mouseDetectionHandler)
+      {
+        document.removeEventListener('mousedown', mouseDetectionHandler, true);
+        document.removeEventListener('mouseup', window.mouseUpHandler, true);
+        document.removeEventListener('contextmenu', contextMenuHandler, true);
+        window.removeEventListener('beforeunload', window.beforeUnloadHandler, true);
+        mouseDetectionHandler = null;
+      }
+      window.mouseDetectionActive = false;
+
       if (allDetectedInputs.size === 0)
       {
         // No input detected
+        console.log('[TIMER] [EVENT] No inputs detected, showing timeout message');
         statusEl.textContent = 'No input detected - timed out';
         document.getElementById('binding-modal-countdown').textContent = '';
+
+        // Store the binding ID to check it hasn't changed
+        const timeoutBindingId = currentBindingId;
         setTimeout(() =>
         {
-          closeBindingModal();
+          // Only close if we're still on the same binding session
+          if (currentBindingId === timeoutBindingId && bindingMode)
+          {
+            console.log('[TIMER] [EVENT] Closing modal after 2s timeout, binding ID match');
+            closeBindingModal();
+          }
+          else
+          {
+            console.log('[TIMER] [EVENT] NOT closing modal - binding ID changed or modal already closed');
+          }
         }, 2000);
         return;
       }
@@ -1738,12 +2093,14 @@ async function startBinding(actionMapName, actionName, actionDisplayName)
     window.currentCompletionUnlisten = unlistenCompletion;
 
     // Start event-based detection (doesn't return a value, just emits events)
+    console.log('[TIMER] [RUST] Calling wait_for_inputs_with_events with bindingId:', thisBindingId);
     invoke('wait_for_inputs_with_events', {
+      sessionId: thisBindingId.toString(),
       initialTimeoutSecs: countdown,
       collectDurationSecs: 2
     }).catch((error) =>
     {
-      console.error('Error during input detection:', error);
+      console.error('[TIMER] [RUST] Error during input detection:', error);
 
       // Cleanup listeners
       if (window.currentInputDetectionUnlisten)
@@ -1764,6 +2121,20 @@ async function startBinding(actionMapName, actionName, actionDisplayName)
         keyboardDetectionHandler = null;
       }
       keyboardDetectionActive = false;
+
+      // Cleanup mouse detection
+      if (window.mouseDetectionHandler)
+      {
+        document.removeEventListener('mousedown', window.mouseDetectionHandler, true);
+        document.removeEventListener('mouseup', window.mouseUpHandler, true);
+        document.removeEventListener('contextmenu', window.contextMenuHandler, true);
+        window.removeEventListener('beforeunload', window.beforeUnloadHandler, true);
+        window.mouseDetectionHandler = null;
+        window.contextMenuHandler = null;
+        window.mouseUpHandler = null;
+        window.beforeUnloadHandler = null;
+      }
+      window.mouseDetectionActive = false;
     });
   } catch (error)
   {
@@ -1811,14 +2182,32 @@ async function clearBinding()
 
 function closeBindingModal()
 {
+  console.log('[TIMER] closeBindingModal called');
   // Mark detection as inactive to ignore any pending events
   isDetectionActive = false;
 
   // Clear the countdown interval if it's running
   if (countdownInterval)
   {
+    console.log('[TIMER] Clearing countdownInterval in closeBindingModal, ID:', countdownInterval);
     clearInterval(countdownInterval);
     countdownInterval = null;
+  }
+  else
+  {
+    console.log('[TIMER] No countdownInterval to clear in closeBindingModal');
+  }
+
+  // Clear keyboard completion timeout
+  if (keyboardCompletionTimeout)
+  {
+    console.log('[TIMER] Clearing keyboardCompletionTimeout in closeBindingModal');
+    clearTimeout(keyboardCompletionTimeout);
+    keyboardCompletionTimeout = null;
+  }
+  else
+  {
+    console.log('[TIMER] No keyboardCompletionTimeout to clear in closeBindingModal');
   }
 
   // Cleanup keyboard detection
@@ -1829,16 +2218,43 @@ function closeBindingModal()
   }
   keyboardDetectionActive = false;
 
+  // Cleanup mouse detection
+  if (window.mouseDetectionHandler)
+  {
+    document.removeEventListener('mousedown', window.mouseDetectionHandler, true);
+    document.removeEventListener('mouseup', window.mouseUpHandler, true);
+    document.removeEventListener('contextmenu', window.contextMenuHandler, true);
+    window.removeEventListener('beforeunload', window.beforeUnloadHandler, true);
+    window.mouseDetectionHandler = null;
+    window.contextMenuHandler = null;
+    window.mouseUpHandler = null;
+    window.beforeUnloadHandler = null;
+  }
+  if (window.mouseDetectionActive !== undefined)
+  {
+    window.mouseDetectionActive = false;
+  }
+
   // Cleanup event listeners
   if (window.currentInputDetectionUnlisten)
   {
+    console.log('[TIMER] Calling currentInputDetectionUnlisten');
     window.currentInputDetectionUnlisten();
     window.currentInputDetectionUnlisten = null;
   }
+  else
+  {
+    console.log('[TIMER] No currentInputDetectionUnlisten to call');
+  }
   if (window.currentCompletionUnlisten)
   {
+    console.log('[TIMER] Calling currentCompletionUnlisten');
     window.currentCompletionUnlisten();
     window.currentCompletionUnlisten = null;
+  }
+  else
+  {
+    console.log('[TIMER] No currentCompletionUnlisten to call');
   }
 
   bindingMode = false;

@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="template-editor.css" />
   <link rel="stylesheet" href="input-debugger.css" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Star Citizen Joystick Mapper</title>
+  <title>Star Citizen Bindnig Utility</title>
   <script type="module" src="/main.js" defer></script>
   <script type="module" src="/joystick-viewer.js" defer></script>
   <script type="module" src="/template-editor.js" defer></script>
@@ -22,7 +22,14 @@
       <!-- Header Row 1 -->
       <div class="header-row-1">
         <div class="header-logo">
-          <h1>Star Citizen Joystick Mapper</h1>
+          <h1>Star Citizen Binding Utility</h1>
+        </div>
+        <div class="header-actions">
+          <button id="sc-directory-btn" class="btn btn-primary" title="Configure Star Citizen installation directory">⚙️
+            Auto Save Settings</button>
+          <button id="load-btn" class="btn btn-primary">Load</button>
+          <button id="save-as-btn" class="btn btn-primary" disabled>Save As...</button>
+          <button id="save-btn" class="btn btn-success" disabled>💾 Save Keybindings</button>
         </div>
         <div class="header-file-info">
           <div id="loaded-file-indicator" class="loaded-file-indicator" style="display: none;">
@@ -40,14 +47,6 @@
           <button id="tab-template" class="tab-btn" data-tab="template">Template Editor</button>
           <button id="tab-debugger" class="tab-btn" data-tab="debugger">Input Debugger</button>
         </div>
-        <div class="header-actions">
-          <button id="sc-directory-btn" class="btn btn-secondary"
-            title="Configure Star Citizen installation directory">⚙️
-            Auto Save Settings</button>
-          <button id="load-btn" class="btn btn-primary">Load</button>
-          <button id="save-btn" class="btn btn-success" disabled>💾 Save</button>
-          <button id="save-as-btn" class="btn btn-secondary" disabled>Save As...</button>
-        </div>
       </div>
     </header>
 
@@ -58,24 +57,23 @@
         <div class="main-content">
           <!-- Sidebar - Categories and Filters -->
           <aside class="sidebar">
-            <button id="configure-joystick-mapping-btn" class="btn btn-secondary"
-              style="width: 100%; margin-bottom: 15px;">⚙️ Configure Joystick Mapping</button>
-
             <div class="filter-section">
-              <h3>Filter by Input Type</h3>
-              <div class="filter-buttons">
-                <button class="filter-btn active" data-filter="all">All</button>
-                <button class="filter-btn" data-filter="keyboard">Keyboard</button>
-                <button class="filter-btn" data-filter="mouse">Mouse</button>
-                <button class="filter-btn" data-filter="joystick">Joystick</button>
-              </div>
+              <h3>Set Device IDs</h3>
+              <button id="configure-joystick-mapping-btn" class="btn btn-secondary" style="width: 100%;">⚙️ Set Joystick
+                Mapping</button>
             </div>
 
-            <div class="filter-section">
-              <h3>Binding Status</h3>
-              <div class="checkbox-container">
-                <input type="checkbox" id="customized-only-checkbox" />
-                <label for="customized-only-checkbox">Customized Only</label>
+            <div class=" filter-section">
+              <h3>Filters</h3>
+              <div class="category-list">
+                <button class="category-item  category-item-indented active" data-filter="all">All</button>
+                <button class="category-item  category-item-indented" data-filter="keyboard">Keyboard</button>
+                <button class="category-item  category-item-indented" data-filter="mouse">Mouse</button>
+                <button class="category-item  category-item-indented" data-filter="joystick">Joystick</button>
+                <div class="checkbox-container">
+                  <input type="checkbox" id="customized-only-checkbox" />
+                  <label for="customized-only-checkbox">Customized Only</label>
+                </div>
               </div>
             </div>
 
@@ -98,7 +96,7 @@
           <main class="bindings-panel">
             <div id="welcome-screen" class="welcome-screen">
               <div class="welcome-content">
-                <h2>Welcome to Star Citizen Joystick Mapper</h2>
+                <h2>Welcome to Star Citizen Binding Utility</h2>
                 <p>Load a Star Citizen keybinding file to view and manage your controls</p>
                 <button id="welcome-load-btn" class="btn btn-large btn-primary">Load Keybindings File</button>
               </div>
@@ -214,20 +212,6 @@
 
       <!-- TAB 3: Template Editor Page -->
       <div id="tab-content-template" class="tab-content">
-        <!-- Page Sub-Header -->
-        <div class="tab-subheader">
-          <h2>Template Editor</h2>
-          <div class="subheader-actions">
-            <div class="stick-selector">
-              <button id="left-stick-btn" class="btn btn-secondary">Left Stick</button>
-              <button id="right-stick-btn" class="btn btn-secondary active">Right Stick</button>
-            </div>
-            <button id="new-template-btn" class="btn btn-secondary">+ New Template</button>
-            <button id="save-template-btn" class="btn btn-primary">Save Template</button>
-            <button id="load-template-btn" class="btn btn-secondary">Load Template</button>
-          </div>
-        </div>
-
         <div class="editor-content">
           <!-- Left Sidebar - Controls -->
           <aside class="editor-sidebar">
@@ -305,7 +289,7 @@
               </div>
             </div>
 
-            <div class="section">
+            <div class="section" style="display:flex; flex-direction:column; gap:6px;">
               <h3>Advanced</h3>
               <button id="clear-all-btn" class="btn btn-danger btn-block">Clear All Buttons</button>
               <button id="mirror-template-btn" class="btn btn-secondary btn-block">🔄 Mirror Template</button>
@@ -317,6 +301,25 @@
           <!-- Main Panel - Canvas Editor -->
           <main class="editor-panel">
             <div class="canvas-container" id="canvas-container">
+              <!-- Floating Template Controls Panel -->
+              <div class="template-controls-panel">
+                <div class="control-group">
+                  <div class="stick-selector">
+                    <button id="left-stick-btn" class="control-btn">🕹️ Left</button>
+                    <button id="right-stick-btn" class="control-btn active">🕹️ Right</button>
+                  </div>
+                </div>
+                <div class="control-divider"></div>
+                <div class="control-group">
+                  <button id="new-template-btn" class="control-btn" title="Create new template">+ New</button>
+                  <button id="load-template-btn" class="control-btn" title="Load existing template">📂 Load</button>
+                </div>
+                <div class="control-divider"></div>
+                <div class="control-group">
+                  <button id="save-template-btn" class="control-btn btn-success" title="Save current template">💾
+                    Save</button>
+                </div>
+              </div>
               <canvas id="editor-canvas"></canvas>
               <div id="canvas-overlay" class="canvas-overlay">
                 <div class="welcome-message">
@@ -475,104 +478,81 @@
       <label>
         Button Type:
         <select id="button-type-select">
-          <option value="simple">Simple Button/Axis</option>
+          <option value="simple">Simple Button or Axis</option>
           <option value="hat4way">4-Way Hat Switch</option>
         </select>
       </label>
 
       <!-- Simple button input detection -->
-      <div id="simple-input-section" style="margin-top: 1rem;">
-        <div style="padding: 0.75rem; background: var(--bg-secondary); border-radius: 4px; margin-bottom: 0.5rem;">
-          <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Button ID:
-          </div>
+      <div id="simple-input-section">
+        <div class="hat-id-box" style="margin-bottom: 0.5rem;">
+          <div class="hat-id-label">Button Number:</div>
           <div id="button-id-display" style="font-size: 1.1rem; font-weight: 500; color: var(--text-primary);">—</div>
-          <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem;">Full ID:
-          </div>
+          <div class="hat-id-label" style="margin-top: 0.5rem;">Button ID:</div>
           <code id="button-full-id-display"
             style="font-size: 0.9rem; color: #4ec9b0; background: var(--bg-dark); padding: 0.3rem 0.5rem; border-radius: 3px; display: inline-block;">—</code>
         </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+        <div class="hat-button-group">
           <button id="button-modal-detect" class="btn btn-secondary">🎮 Detect Input</button>
           <button id="button-modal-clear" class="btn btn-secondary">✕ Clear</button>
         </div>
-        <div id="input-detection-status" class="info-text"
-          style="display: none; margin-top: 0.5rem; text-align: center;"></div>
+        <div id="input-detection-status" class="info-text"></div>
       </div>
 
       <!-- Hat switch input detection -->
-      <div id="hat-input-section" style="display: none; margin-top: 1rem;">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 1rem;">
-          <div style="padding: 0.5rem; background: var(--bg-secondary); border-radius: 4px;">
-            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.25rem;">↑ Up ID:
-            </div>
-            <div class="hat-id-display" data-direction="up" style="font-size: 0.95rem; font-weight: 500;">—
-            </div>
+      <div id="hat-input-section">
+        <div class="hat-id-grid">
+          <div class="hat-id-box">
+            <div class="hat-id-label">⬆️ Up ID:</div>
+            <div class="hat-id-display" data-direction="up">—</div>
           </div>
-          <div style="padding: 0.5rem; background: var(--bg-secondary); border-radius: 4px;">
-            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.25rem;">↓ Down
-              ID:</div>
-            <div class="hat-id-display" data-direction="down" style="font-size: 0.95rem; font-weight: 500;">
-              —</div>
+          <div class="hat-id-box">
+            <div class="hat-id-label">⬇️ Down ID:</div>
+            <div class="hat-id-display" data-direction="down">—</div>
           </div>
-          <div style="padding: 0.5rem; background: var(--bg-secondary); border-radius: 4px;">
-            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.25rem;">← Left
-              ID:</div>
-            <div class="hat-id-display" data-direction="left" style="font-size: 0.95rem; font-weight: 500;">
-              —</div>
+          <div class="hat-id-box">
+            <div class="hat-id-label">⬅️ Left ID:</div>
+            <div class="hat-id-display" data-direction="left">—</div>
           </div>
-          <div style="padding: 0.5rem; background: var(--bg-secondary); border-radius: 4px;">
-            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.25rem;">→ Right
-              ID:</div>
-            <div class="hat-id-display" data-direction="right" style="font-size: 0.95rem; font-weight: 500;">—</div>
+          <div class="hat-id-box">
+            <div class="hat-id-label">➡️ Right ID:</div>
+            <div class="hat-id-display" data-direction="right">—</div>
           </div>
         </div>
-        <div style="padding: 0.5rem; background: var(--bg-secondary); border-radius: 4px; margin-bottom: 1rem;">
-          <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.25rem;">⬇️ Push ID:
-          </div>
-          <div class="hat-id-display" data-direction="push" style="font-size: 0.95rem; font-weight: 500;">—
-          </div>
+        <div class="hat-id-box" style="margin-bottom: 1rem;">
+          <div class="hat-id-label">⬇️ Push ID:</div>
+          <div class="hat-id-display" data-direction="push">—</div>
         </div>
-        <p style="font-size: 0.9rem; color: var(--text-secondary); margin: 0.5rem 0 0.5rem 0;">Or detect
-          automatically:</p>
-        <div style="display: grid; gap: 0.5rem;">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-            <button class="btn btn-secondary btn-sm hat-detect-btn" data-direction="up">⬆️ Detect
-              Up</button>
+        <div class="hat-button-container">
+          <div class="hat-button-group">
+            <button class="btn btn-secondary btn-sm hat-detect-btn" data-direction="up">⬆️ Detect Up</button>
             <button class="btn btn-secondary btn-sm hat-clear-btn" data-direction="up">✕ Clear Up</button>
           </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-            <button class="btn btn-secondary btn-sm hat-detect-btn" data-direction="down">⬇️ Detect
-              Down</button>
-            <button class="btn btn-secondary btn-sm hat-clear-btn" data-direction="down">✕ Clear
-              Down</button>
+          <div class="hat-button-group">
+            <button class="btn btn-secondary btn-sm hat-detect-btn" data-direction="down">⬇️ Detect Down</button>
+            <button class="btn btn-secondary btn-sm hat-clear-btn" data-direction="down">✕ Clear Down</button>
           </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-            <button class="btn btn-secondary btn-sm hat-detect-btn" data-direction="left">⬅️ Detect
-              Left</button>
-            <button class="btn btn-secondary btn-sm hat-clear-btn" data-direction="left">✕ Clear
-              Left</button>
+          <div class="hat-button-group">
+            <button class="btn btn-secondary btn-sm hat-detect-btn" data-direction="left">⬅️ Detect Left</button>
+            <button class="btn btn-secondary btn-sm hat-clear-btn" data-direction="left">✕ Clear Left</button>
           </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-            <button class="btn btn-secondary btn-sm hat-detect-btn" data-direction="right">➡️ Detect
-              Right</button>
-            <button class="btn btn-secondary btn-sm hat-clear-btn" data-direction="right">✕ Clear
-              Right</button>
+          <div class="hat-button-group">
+            <button class="btn btn-secondary btn-sm hat-detect-btn" data-direction="right">➡️ Detect Right</button>
+            <button class="btn btn-secondary btn-sm hat-clear-btn" data-direction="right">✕ Clear Right</button>
           </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-            <button class="btn btn-secondary btn-sm hat-detect-btn" data-direction="push">⬇️ Detect
-              Push</button>
-            <button class="btn btn-secondary btn-sm hat-clear-btn" data-direction="push">✕ Clear
-              Push</button>
+          <div class="hat-button-group">
+            <button class="btn btn-secondary btn-sm hat-detect-btn" data-direction="push">⬇️ Detect Push</button>
+            <button class="btn btn-secondary btn-sm hat-clear-btn" data-direction="push">✕ Clear Push</button>
           </div>
         </div>
-        <div id="hat-detection-status" class="info-text" style="display: none; margin-top: 0.5rem; text-align: center;">
+        <div id="hat-detection-status" class="info-text">
         </div>
       </div>
 
       <div class="modal-buttons" style="margin-top: 1.5rem;">
-        <button id="button-modal-delete" class="btn btn-danger">Delete Button</button>
+        <button id="button-modal-delete" class="btn btn-danger" style="margin-right: auto;">Delete Button</button>
         <button id="button-modal-cancel" class="btn btn-secondary">Cancel</button>
-        <button id="button-modal-save" class="btn btn-primary">Save</button>
+        <button id="button-modal-save" class="btn btn-success">Save</button>
       </div>
     </div>
   </div>

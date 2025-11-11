@@ -50,6 +50,12 @@ pub struct DetectedInput {
     pub axis_value: Option<f32>,  // Raw axis value if applicable
     pub modifiers: Vec<String>,  // Active modifiers: LALT, RALT, LCTRL, RCTRL, LSHIFT, RSHIFT
     pub is_modifier: bool,       // True if this input itself is a modifier key
+    pub session_id: String,      // Session ID to track which detection session this input belongs to
+}
+
+#[derive(Serialize, Clone, Debug)]
+pub struct DetectionComplete {
+    pub session_id: String,
 }
 
 #[derive(Serialize)]
@@ -71,7 +77,7 @@ struct AxisState {
 }
 
 /// Wait for joystick input using gilrs with hat detection and axis direction support
-pub fn wait_for_input(timeout_secs: u64) -> Result<Option<DetectedInput>, String> {
+pub fn wait_for_input(session_id: String, timeout_secs: u64) -> Result<Option<DetectedInput>, String> {
     let mut gilrs = Gilrs::new().map_err(|e| e.to_string())?;
     
     // Track axis states to prevent duplicate triggers
@@ -178,6 +184,7 @@ pub fn wait_for_input(timeout_secs: u64) -> Result<Option<DetectedInput>, String
                         axis_value: None,
                         modifiers: get_active_modifiers(),
                         is_modifier: false,
+                        session_id: session_id.clone(),
                     }));
                 }
                 EventType::AxisChanged(axis, value, code) => {
@@ -257,6 +264,7 @@ pub fn wait_for_input(timeout_secs: u64) -> Result<Option<DetectedInput>, String
                                 axis_value: Some(value),
                                 modifiers: get_active_modifiers(),
                                 is_modifier: false,
+                                session_id: session_id.clone(),
                             }));
                         }
                     }
@@ -271,7 +279,7 @@ pub fn wait_for_input(timeout_secs: u64) -> Result<Option<DetectedInput>, String
 
 /// Wait for multiple joystick inputs and collect them all
 /// Continues listening for 2 seconds after the first input is detected
-pub fn wait_for_multiple_inputs(initial_timeout_secs: u64, collect_duration_secs: u64) -> Result<Vec<DetectedInput>, String> {
+pub fn wait_for_multiple_inputs(session_id: String, initial_timeout_secs: u64, collect_duration_secs: u64) -> Result<Vec<DetectedInput>, String> {
 
     let mut gilrs = Gilrs::new().map_err(|e| e.to_string())?;
     
@@ -388,6 +396,7 @@ pub fn wait_for_multiple_inputs(initial_timeout_secs: u64, collect_duration_secs
                         axis_value: None,
                         modifiers: get_active_modifiers(),
                         is_modifier: false,
+                        session_id: session_id.clone(),
                     })
                 }
                 EventType::AxisChanged(axis, value, code) => {
@@ -453,6 +462,7 @@ pub fn wait_for_multiple_inputs(initial_timeout_secs: u64, collect_duration_secs
                                 axis_value: Some(value),
                                 modifiers: get_active_modifiers(),
                                 is_modifier: false,
+                                session_id: session_id.clone(),
                             })
                         } else {
                             None
@@ -483,7 +493,7 @@ pub fn wait_for_multiple_inputs(initial_timeout_secs: u64, collect_duration_secs
 
 /// Wait for joystick inputs and emit events in real-time as they're detected
 /// This version uses Tauri's event system to send updates to the frontend immediately
-pub fn wait_for_inputs_with_events(window: tauri::Window, initial_timeout_secs: u64, collect_duration_secs: u64) -> Result<(), String> {
+pub fn wait_for_inputs_with_events(window: tauri::Window, session_id: String, initial_timeout_secs: u64, collect_duration_secs: u64) -> Result<(), String> {
     use std::collections::HashMap;
 
     let mut gilrs = Gilrs::new().map_err(|e| e.to_string())?;
@@ -533,13 +543,13 @@ pub fn wait_for_inputs_with_events(window: tauri::Window, initial_timeout_secs: 
         if first_input_time.is_none() {
             if start.elapsed() >= initial_timeout {
                 // Emit completion event
-                let _ = window.emit("input-detection-complete", ());
+                let _ = window.emit("input-detection-complete", DetectionComplete { session_id: session_id.clone() });
                 break;
             }
         } else {
             if first_input_time.unwrap().elapsed() >= collect_duration {
                 // Emit completion event
-                let _ = window.emit("input-detection-complete", ());
+                let _ = window.emit("input-detection-complete", DetectionComplete { session_id: session_id.clone() });
                 break;
             }
         }
@@ -598,6 +608,7 @@ pub fn wait_for_inputs_with_events(window: tauri::Window, initial_timeout_secs: 
                         axis_value: None,
                         modifiers: get_active_modifiers(),
                         is_modifier: false,
+                        session_id: session_id.clone(),
                     })
                 }
                 EventType::AxisChanged(axis, value, code) => {
@@ -666,6 +677,7 @@ pub fn wait_for_inputs_with_events(window: tauri::Window, initial_timeout_secs: 
                                 axis_value: Some(value),
                                 modifiers: get_active_modifiers(),
                                 is_modifier: false,
+                                session_id: session_id.clone(),
                             })
                         } else {
                             None

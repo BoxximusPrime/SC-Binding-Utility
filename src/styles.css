@@ -304,6 +304,29 @@ p[style*="color: red"] {
 
 .header-logo {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, rgba(217, 83, 79, 0.15) 0%, rgba(217, 83, 79, 0.05) 100%);
+  border: 1px solid rgba(217, 83, 79, 0.3);
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.header-logo-icon {
+  font-size: 1.5rem;
+  filter: drop-shadow(0 0 4px rgba(217, 83, 79, 0.4));
+}
+
+.header-logo-text {
+  font-size: 1.1rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-hover));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 0.5px;
 }
 
 .app-header h1 {
@@ -312,7 +335,7 @@ p[style*="color: red"] {
 }
 
 .header-file-info {
-  flex: 1;
+  flex: 0;
   display: flex;
   justify-content: flex-end;
   align-items: center;
@@ -346,9 +369,9 @@ p[style*="color: red"] {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.5rem 1.5rem;
   gap: 2rem;
-  background: var(--bg-light);
+  background: var(--bg-medium);
+  border-bottom: 2px solid #000;
 }
 
 .header-tabs {
@@ -358,26 +381,27 @@ p[style*="color: red"] {
 }
 
 .tab-btn {
-  padding: 0.5rem 1rem;
   background-color: transparent;
   color: var(--text-secondary);
   border: none;
   cursor: pointer;
   font-size: 0.95rem;
   font-weight: 500;
-  border-bottom: 2px solid transparent;
   transition: all 0.2s;
   white-space: nowrap;
+  border-radius: 0;
 }
 
 .tab-btn:hover {
   color: var(--text-primary);
-  border-bottom-color: var(--bg-light);
+  background: var(--bg-lightest);
 }
 
 .tab-btn.active {
   color: var(--accent-primary);
   border-bottom-color: var(--accent-primary);
+  background: #1a1d23;
+  border-top: 1px solid var(--accent-active);
 }
 
 .header-actions {
@@ -439,6 +463,7 @@ p[style*="color: red"] {
   background-color: transparent;
   border: 1px solid transparent;
   font-size: 0.9rem;
+  color: var(--text-primary)
 }
 
 .filter-btn:hover {
@@ -570,12 +595,15 @@ input[type="checkbox"]:disabled:hover {
   padding: 0.5rem 0.75rem;
   cursor: pointer;
   border-radius: 4px;
-  transition: all 0.2s;
   font-size: 0.9rem;
+  background-color: transparent;
+  border: none;
+  color: var(--text-primary);
+  text-align: left;
 }
 
 .category-item:hover {
-  background-color: var(--bg-medium);
+  background-color: var(--bg-darkest);
 }
 
 .category-item.active {
@@ -837,6 +865,21 @@ input[type="checkbox"]:disabled:hover {
   font-size: 1rem;
 }
 
+.header-binding-title {
+  display: inline-block;
+  color: var(--accent-active);
+  line-height: 3;
+  position: relative;
+}
+
+.header-binding-title::after {
+  content: '→';
+  display: inline-block;
+  margin-left: 0.5rem;
+  color: var(--text-secondary);
+  transition: color 0.2s ease;
+}
+
 /* Button Styles */
 .btn {
   padding: 0.75rem 1.5rem;
@@ -846,17 +889,6 @@ input[type="checkbox"]:disabled:hover {
   cursor: pointer;
   border: 1px solid transparent;
 }
-
-/* .btn-primary {
-  background-color: var(--accent-primary);
-  color: white;
-  border-color: var(--accent-primary);
-}
-
-.btn-primary:hover {
-  background-color: var(--accent-hover);
-  border-color: var(--accent-hover);
-} */
 
 .btn-secondary {
   background-color: var(--button-dark-bg);
@@ -872,13 +904,14 @@ input[type="checkbox"]:disabled:hover {
 
 .btn-success {
   background-color: #28a745;
-  border-color: #28a745;
+  border-color: #91e9a5;
   color: white;
 }
 
 .btn-success:hover:not(:disabled) {
-  background-color: #218838;
-  border-color: #1e7e34;
+  background-color: #6db77f;
+  border-color: #c1dfc8;
+  color: #fff;
 }
 
 .btn-success:disabled {
@@ -1082,27 +1115,27 @@ input[type="checkbox"]:disabled:hover {
 }
 
 .modal-content {
-  background: var(--bg-dark);
-  border: 1px solid var(--button-border);
+  background: var(--bg-light);
+  border: 1px solid var(--bg-lightest);
   border-radius: 8px;
   width: 90%;
   max-width: 600px;
   max-height: 80vh;
   display: flex;
   flex-direction: column;
+  padding: 2rem;
+  padding-top: 0;
 }
 
-.modal-header {
+.modal-content h2 {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem;
-  border-bottom: 1px solid var(--button-border);
-}
-
-.modal-header h2 {
-  margin: 0;
-  color: var(--accent-primary);
+  border-bottom: 1px solid var(--bg-lightest);
+  background: var(--bg-darkest);
+  margin: 0px -26px 20px -26px;
+  border-radius: 8px 8px 0 0;
 }
 
 .modal-close {
@@ -1137,6 +1170,127 @@ input[type="checkbox"]:disabled:hover {
   justify-content: flex-end;
   padding: 1.5rem;
   border-top: 1px solid var(--button-border);
+}
+
+/* Modal Form Styling */
+.modal-content label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.modal-content input,
+.modal-content select {
+  background-color: var(--bg-medium);
+  color: var(--text-primary);
+  border: 1px solid var(--bg-light);
+  padding: 0.75rem;
+  border-radius: 4px;
+  font-family: inherit;
+}
+
+.modal-content input:focus,
+.modal-content select:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px rgba(217, 83, 79, 0.1);
+}
+
+/* Button ID Display Box */
+.button-id-box {
+  padding: 0.75rem;
+  background: var(--bg-medium);
+  border: 1px solid var(--bg-light);
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.button-id-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+}
+
+.button-id-value {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.button-full-id {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+}
+
+.button-full-id-code {
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 0.9rem;
+  color: #4ec9b0;
+  background: var(--bg-dark);
+  padding: 0.3rem 0.5rem;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+/* Hat Direction Box */
+.hat-direction-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.hat-direction-box {
+  padding: 0.5rem;
+  background: var(--bg-medium);
+  border: 1px solid var(--bg-light);
+  border-radius: 4px;
+}
+
+.hat-direction-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.25rem;
+}
+
+.hat-direction-value {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* Button Grid for Modal Actions */
+.modal-button-grid {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.modal-button-grid.two-col {
+  grid-template-columns: 1fr 1fr;
+}
+
+.modal-button-grid.full-width {
+  grid-template-columns: 1fr;
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
+.hat-clear-btn {
+  width: 100px;
 }
 
 .mapping-help {
@@ -1245,9 +1399,46 @@ input[type="checkbox"]:disabled:hover {
   color: #64c864;
 }
 
-.btn-small {
+.btn-small,
+.btn-sm {
   padding: 0.4rem 0.8rem;
   font-size: 0.8rem;
+}
+
+.btn-primary {
+  background-color: #262b31;
+  color: white;
+  border-color: var(--bg-lightest);
+}
+
+.btn-primary:hover {
+  background-color: #454c54;
+  border-color: #929ba7;
+  color: #fff;
+}
+
+.btn-danger {
+  background-color: #c74444;
+  color: white;
+  border-color: #f15c5c;
+}
+
+.btn-danger:hover {
+  background-color: #d9534f;
+  border-color: #e5c0bf;
+  color: #fff;
+}
+
+.btn-accent {
+  background-color: var(--button-bg);
+  border-color: var(--button-border);
+  color: #ffffff;
+}
+
+.btn-accent:hover {
+  background-color: var(--button-hover-bg);
+  border-color: var(--button-hover-border);
+  color: #ffffff;
 }
 
 .joystick-test-btn {
@@ -1430,4 +1621,66 @@ input[type="checkbox"]:disabled:hover {
   align-items: center;
   flex-wrap: nowrap;
   min-width: 0;
+}
+
+/* HAT Input Section Styles */
+.hat-id-box {
+  padding: 0.5rem;
+  background: var(--bg-medium);
+  border-radius: 4px;
+}
+
+.hat-id-label {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+}
+
+.hat-id-display {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #4faf7f;
+}
+
+.hat-id-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.hat-button-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.hat-button-container {
+  display: grid;
+  gap: 0.5rem;
+}
+
+#simple-input-section {
+  margin-top: 1rem;
+}
+
+#hat-input-section {
+  display: none;
+  margin-top: 1rem;
+}
+
+#hat-input-section.visible {
+  display: block;
+}
+
+#hat-detection-status {
+  display: none;
+  margin-top: 0.5rem;
+  text-align: center;
+}
+
+#input-detection-status {
+  display: none;
+  margin-top: 0.5rem;
+  text-align: center;
 }
