@@ -1336,17 +1336,6 @@
 			</states>
 		</action>
 	</actionmap>
-	<actionmap name="debug" version="23">
-		<action name="godmode" onPress="1" noModifiers="1" keyboard="f9"/>
-		<action name="pause_and_fly" onPress="1" noModifiers="1" keyboard="pause"/>
-		<action name="toggleaidebugdraw" onPress="1" noModifiers="1" keyboard="f11"/>
-		<action name="ai_DebugCenterViewAgent" onPress="1" noModifiers="1" keyboard="np_divide"/>
-		<action name="togglepdrawhelpers" onPress="1" noModifiers="1" keyboard="f10"/>
-		<action name="mannequin_debugai" onPress="1" noModifiers="1" keyboard="np_multiply"/>
-		<action name="pl_result_state_debug_target" activationMode="press" keyboard="np_period"/>
-		<action name="mov_advance_all_sequences" activationMode="press" keyboard="end"/>
-		<action name="mov_pause_resume_all_sequences" activationMode="press" keyboard="home"/>
-	</actionmap>
 	<actionmap name="IFCS_controls" version="2">
 		<action name="v_IFCS_A" onPress="1" onRelease="1" onHold="" gamepad="a" keyboard="rctrl+a"/>
 		<action name="v_IFCS_B" onPress="1" onRelease="1" onHold="" gamepad="b" keyboard="rctrl+b"/>
