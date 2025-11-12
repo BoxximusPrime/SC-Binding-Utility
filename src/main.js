@@ -535,12 +535,16 @@ function initializeEventListeners()
   const configureBtn = document.getElementById('configure-joystick-mapping-btn');
   const joyMappingClose = document.getElementById('joystick-mapping-close');
   const joyMappingCancel = document.getElementById('joystick-mapping-cancel');
-  const joyMappingDetect = document.getElementById('joystick-mapping-detect');
+  const detectJs1Btn = document.getElementById('detect-js1-btn');
+  const detectJs2Btn = document.getElementById('detect-js2-btn');
+  const detectGp1Btn = document.getElementById('detect-gp1-btn');
   const joyMappingSave = document.getElementById('joystick-mapping-save');
   if (configureBtn) configureBtn.addEventListener('click', openJoystickMappingModal);
   if (joyMappingClose) joyMappingClose.addEventListener('click', closeJoystickMappingModal);
   if (joyMappingCancel) joyMappingCancel.addEventListener('click', closeJoystickMappingModal);
-  if (joyMappingDetect) joyMappingDetect.addEventListener('click', detectJoysticks);
+  if (detectJs1Btn) detectJs1Btn.addEventListener('click', () => detectDevice('js1'));
+  if (detectJs2Btn) detectJs2Btn.addEventListener('click', () => detectDevice('js2'));
+  if (detectGp1Btn) detectGp1Btn.addEventListener('click', () => detectDevice('gp1'));
   if (joyMappingSave) joyMappingSave.addEventListener('click', saveJoystickMapping);
 }
 
@@ -1058,6 +1062,7 @@ function renderKeybindings()
           if (currentFilter === 'keyboard') return binding.input_type === 'Keyboard';
           if (currentFilter === 'mouse') return binding.input_type === 'Mouse';
           if (currentFilter === 'joystick') return binding.input_type === 'Joystick';
+          if (currentFilter === 'gamepad') return binding.input_type === 'Gamepad';
           return true;
         });
 
@@ -1078,6 +1083,7 @@ function renderKeybindings()
             if (currentFilter === 'keyboard' && binding.input_type !== 'Keyboard') return false;
             if (currentFilter === 'mouse' && binding.input_type !== 'Mouse') return false;
             if (currentFilter === 'joystick' && binding.input_type !== 'Joystick') return false;
+            if (currentFilter === 'gamepad' && binding.input_type !== 'Gamepad') return false;
           }
 
           return true;
@@ -1161,6 +1167,7 @@ function renderKeybindings()
             if (currentFilter === 'keyboard' && binding.input_type !== 'Keyboard') return;
             if (currentFilter === 'mouse' && binding.input_type !== 'Mouse') return;
             if (currentFilter === 'joystick' && binding.input_type !== 'Joystick') return;
+            if (currentFilter === 'gamepad' && binding.input_type !== 'Gamepad') return;
           }
 
           let typeClass = 'unbound';
@@ -1178,6 +1185,10 @@ function renderKeybindings()
           {
             typeClass = 'joystick';
             icon = '🕹';
+          } else if (binding.input_type === 'Gamepad')
+          {
+            typeClass = 'gamepad';
+            icon = '🎮';
           }
 
           // Show if it's a default binding or a cleared override
@@ -2462,211 +2473,275 @@ function updateUnsavedIndicator()
 
 let detectedJoysticks = [];
 
+// JOYSTICK MAPPING
+// ============================================================================
+
+let currentDetectingDevice = null; // 'js1', 'js2', or 'gp1'
+let deviceDetectionSessionId = null;
+let deviceMappings = {}; // Stores { js1: { detectedNum: 3, detectedPrefix: 'js', deviceName: 'VKB' }, ... }
+
 async function openJoystickMappingModal()
 {
   const modal = document.getElementById('joystick-mapping-modal');
   modal.style.display = 'flex';
 
-  // Auto-detect joysticks when modal opens
-  await detectJoysticks();
+  // Load existing mappings and update display
+  loadDeviceMappings();
+  updateDeviceInfoDisplays();
 }
 
 function closeJoystickMappingModal()
 {
   const modal = document.getElementById('joystick-mapping-modal');
   modal.style.display = 'none';
-}
 
-async function detectJoysticks()
-{
-  try
+  // Stop any active detection
+  if (currentDetectingDevice !== null)
   {
-    console.log('Detecting joysticks...');
-    const joysticks = await invoke('detect_joysticks');
-    console.log('Detected joysticks:', joysticks);
-
-    detectedJoysticks = joysticks;
-    renderJoystickMappingList();
-
-  } catch (error)
-  {
-    console.error('Failed to detect joysticks:', error);
-    alert(`Failed to detect joysticks: ${error}`);
+    stopDeviceDetection();
   }
 }
 
-function renderJoystickMappingList()
+function loadDeviceMappings()
 {
-  const container = document.getElementById('joystick-mapping-list');
-
-  if (detectedJoysticks.length === 0)
+  const saved = localStorage.getItem('joystickMapping');
+  if (saved)
   {
-    container.innerHTML = `
-      <div class="no-joysticks">
-        <div class="no-joysticks-icon">🎮</div>
-        <p>No joysticks detected. Make sure your devices are connected and click "Detect Joysticks".</p>
-      </div>
-    `;
+    try
+    {
+      deviceMappings = JSON.parse(saved);
+    }
+    catch (e)
+    {
+      console.error('Failed to parse saved joystick mapping:', e);
+      deviceMappings = {};
+    }
+  }
+}
+
+async function detectDevice(targetDevice)
+{
+  // If already detecting this device, stop it
+  if (currentDetectingDevice === targetDevice)
+  {
+    stopDeviceDetection();
     return;
   }
 
-  // Load existing mapping from localStorage
-  const existingMapping = JSON.parse(localStorage.getItem('joystickMapping') || '{}');
-
-  // Calculate instance numbers separately for joysticks and gamepads
-  let joystickInstanceNum = 0;
-  let gamepadInstanceNum = 0;
-
-  container.innerHTML = detectedJoysticks.map(joystick =>
+  // Stop any other detection first
+  if (currentDetectingDevice !== null)
   {
-    const physicalId = joystick.id;
+    stopDeviceDetection();
+  }
 
-    // Use backend's device_type determination
-    const isGamepad = joystick.device_type === 'Gamepad';
-    const typeLabel = joystick.device_type;
-    const typeClass = isGamepad ? 'device-gamepad' : 'device-joystick';
-    const devicePrefix = isGamepad ? 'gp' : 'js';
+  currentDetectingDevice = targetDevice;
+  const buttonId = `detect-${targetDevice}-btn`;
+  const infoId = `${targetDevice}-info`;
 
-    // Assign instance number based on device type
-    let detectedScNum;
-    if (isGamepad)
+  const button = document.getElementById(buttonId);
+  const infoDiv = document.getElementById(infoId);
+
+  // Update UI to detecting state
+  if (button)
+  {
+    button.textContent = '⏹️ Stop Detecting';
+    button.classList.add('detecting');
+  }
+
+  if (infoDiv)
+  {
+    infoDiv.classList.add('detecting');
+    infoDiv.innerHTML = '<div style="color: #ffc107; font-weight: 500;">👂 Listening... Press any button on your device!</div>';
+  }
+
+  // Generate session ID
+  deviceDetectionSessionId = 'device-detect-' + Date.now();
+  const sessionId = deviceDetectionSessionId;
+
+  try
+  {
+    console.log(`[DEVICE-DETECTION] Detecting ${targetDevice}, session:`, sessionId);
+
+    const result = await invoke('wait_for_input_binding', {
+      sessionId: sessionId,
+      timeoutSecs: 15
+    });
+
+    // Check if this session is still active
+    if (deviceDetectionSessionId !== sessionId)
     {
-      gamepadInstanceNum++;
-      detectedScNum = gamepadInstanceNum;
-    } else
-    {
-      joystickInstanceNum++;
-      detectedScNum = joystickInstanceNum;
+      console.log(`[DEVICE-DETECTION] Session ${sessionId} cancelled, ignoring result`);
+      return;
     }
 
-    const currentMapping = existingMapping[`${devicePrefix}${detectedScNum}`] || detectedScNum; // Default to detected number
-
-    return `
-      <div class="joystick-mapping-item">
-        <div class="joystick-info">
-          <div class="joystick-name">
-            ${joystick.name}
-            <span class="device-badge ${typeClass.replace('device-', '')}">${typeLabel}</span>
-          </div>
-          <div class="joystick-details">
-            Currently detected as: <strong>${devicePrefix}${detectedScNum}</strong>
-          </div>
-          <div class="joystick-test-indicator" data-detected-sc-num="${detectedScNum}" data-device-prefix="${devicePrefix}" id="test-indicator-${devicePrefix}${detectedScNum}">
-            Press a button on this device to identify it...
-          </div>
-        </div>
-        <div class="joystick-mapping-controls">
-          <label>Map to:</label>
-          <select data-detected-sc-num="${detectedScNum}" data-device-prefix="${devicePrefix}" class="joystick-mapping-select">
-            <option value="1" ${currentMapping == 1 ? 'selected' : ''}>${devicePrefix}1</option>
-            <option value="2" ${currentMapping == 2 ? 'selected' : ''}>${devicePrefix}2</option>
-            <option value="3" ${currentMapping == 3 ? 'selected' : ''}>${devicePrefix}3</option>
-            <option value="4" ${currentMapping == 4 ? 'selected' : ''}>${devicePrefix}4</option>
-            <option value="disabled" ${currentMapping === 'disabled' ? 'selected' : ''}>Disabled</option>
-          </select>
-          <span class="joystick-mapping-info" data-detected-sc-num="${detectedScNum}" data-device-prefix="${devicePrefix}">
-            ${currentMapping === 'disabled' ? 'This device will be ignored' : `This device will be treated as ${devicePrefix}${currentMapping}`}
-          </span>
-          <button class="btn btn-small btn-secondary joystick-test-btn" data-detected-sc-num="${detectedScNum}" data-device-prefix="${devicePrefix}">Test</button>
-        </div>
-      </div>
-    `;
-  }).join('');
-
-  // Add event listeners for test buttons
-  document.querySelectorAll('.joystick-test-btn').forEach(btn =>
-  {
-    btn.addEventListener('click', () => 
+    if (result)
     {
-      const detectedScNum = parseInt(btn.dataset.detectedScNum);
-      const devicePrefix = btn.dataset.devicePrefix;
-      startJoystickTest(detectedScNum, devicePrefix);
-    });
-  });
+      console.log(`[DEVICE-DETECTION] Detected input:`, result);
 
-  // Add event listeners for mapping select changes to update info text
-  document.querySelectorAll('.joystick-mapping-select').forEach(select =>
-  {
-    select.addEventListener('change', (e) =>
-    {
-      const detectedScNum = e.target.dataset.detectedScNum;
-      const devicePrefix = e.target.dataset.devicePrefix;
-      const infoSpan = document.querySelector(`.joystick-mapping-info[data-detected-sc-num="${detectedScNum}"][data-device-prefix="${devicePrefix}"]`);
-      const value = e.target.value;
-
-      if (infoSpan)
+      // Extract js/gp number and device info
+      const match = result.input_string.match(/^(js|gp)(\d+)_/);
+      if (match)
       {
-        if (value === 'disabled')
+        const prefix = match[1];
+        const detectedNum = parseInt(match[2]);
+
+        // Get device name from result
+        const deviceName = result.display_name || `Device ${detectedNum}`;
+
+        // Store the mapping
+        deviceMappings[targetDevice] = {
+          detectedNum: detectedNum,
+          detectedPrefix: prefix,
+          deviceName: deviceName
+        };
+
+        console.log(`[DEVICE-DETECTION] Mapped ${targetDevice}: ${prefix}${detectedNum}`);
+
+        // Update display
+        if (infoDiv)
         {
-          infoSpan.textContent = 'This device will be ignored';
-        }
-        else
-        {
-          infoSpan.textContent = `This device will be treated as ${devicePrefix}${value}`;
+          infoDiv.classList.remove('detecting');
+          infoDiv.classList.add('configured');
+          infoDiv.innerHTML = `
+            <div class="device-name">${deviceName}</div>
+            <div class="device-details">Detected as: ${prefix}${detectedNum}</div>
+            <div class="device-mapping">Maps to: ${targetDevice}</div>
+          `;
         }
       }
-    });
+    }
+    else
+    {
+      // Timeout
+      if (infoDiv)
+      {
+        infoDiv.classList.remove('detecting');
+        infoDiv.innerHTML = '<div style="color: #d9534f;">⏱️ Timeout - no input detected. Try again.</div>';
+
+        setTimeout(() =>
+        {
+          updateDeviceInfoDisplays();
+        }, 3000);
+      }
+    }
+  }
+  catch (error)
+  {
+    console.error('[DEVICE-DETECTION] Error:', error);
+    if (infoDiv)
+    {
+      infoDiv.classList.remove('detecting');
+      infoDiv.innerHTML = `<div style="color: #d9534f;">❌ Error: ${error.message || error}</div>`;
+
+      setTimeout(() =>
+      {
+        updateDeviceInfoDisplays();
+      }, 3000);
+    }
+  }
+  finally
+  {
+    // Reset button
+    if (button)
+    {
+      const btn = document.getElementById(buttonId);
+      if (btn)
+      {
+        btn.textContent = `🎮 Detect ${targetDevice}`;
+        btn.classList.remove('detecting');
+      }
+    }
+
+    if (currentDetectingDevice === targetDevice)
+    {
+      currentDetectingDevice = null;
+    }
+    deviceDetectionSessionId = null;
+  }
+}
+
+function stopDeviceDetection()
+{
+  if (currentDetectingDevice === null) return;
+
+  console.log(`[DEVICE-DETECTION] Stopping detection for ${currentDetectingDevice}`);
+
+  const buttonId = `detect-${currentDetectingDevice}-btn`;
+  const button = document.getElementById(buttonId);
+
+  if (button)
+  {
+    button.textContent = `🎮 Detect ${currentDetectingDevice}`;
+    button.classList.remove('detecting');
+  }
+
+  updateDeviceInfoDisplays();
+
+  currentDetectingDevice = null;
+  deviceDetectionSessionId = null;
+}
+
+function updateDeviceInfoDisplays()
+{
+  // Update all device info displays
+  ['js1', 'js2', 'gp1'].forEach(device =>
+  {
+    const infoDiv = document.getElementById(`${device}-info`);
+    if (!infoDiv) return;
+
+    const mapping = deviceMappings[device];
+    if (mapping && mapping.detectedNum)
+    {
+      infoDiv.classList.add('configured');
+      infoDiv.classList.remove('detecting');
+      infoDiv.innerHTML = `
+        <div class="device-name">${mapping.deviceName}</div>
+        <div class="device-details">Detected as: ${mapping.detectedPrefix}${mapping.detectedNum}</div>
+        <div class="device-mapping">Maps to: ${device}</div>
+      `;
+    }
+    else
+    {
+      infoDiv.classList.remove('configured', 'detecting');
+      infoDiv.innerHTML = '<div class="not-configured">Not configured</div>';
+    }
   });
 }
 
-
 function saveJoystickMapping()
 {
-  const mapping = {};
-
-  document.querySelectorAll('.joystick-mapping-select').forEach(select =>
-  {
-    const detectedScNum = select.dataset.detectedScNum;
-    const targetScNum = select.value;
-
-    if (targetScNum !== 'disabled')
-    {
-      mapping[detectedScNum] = parseInt(targetScNum);
-    } else
-    {
-      mapping[detectedScNum] = 'disabled';
-    }
-  });
-
-  localStorage.setItem('joystickMapping', JSON.stringify(mapping));
-  console.log('Saved joystick mapping (detected -> target):', mapping);
+  // Save the device mappings
+  localStorage.setItem('joystickMapping', JSON.stringify(deviceMappings));
+  console.log('Saved joystick mapping:', deviceMappings);
 
   closeJoystickMappingModal();
-
-  // Show a success message
-  alert('Joystick mapping saved! The mapping will be applied when detecting inputs.');
 }
 
 // Function to apply joystick mapping to detected input
 function applyJoystickMapping(detectedInput)
 {
-  const mapping = JSON.parse(localStorage.getItem('joystickMapping') || '{}');
+  const mappings = JSON.parse(localStorage.getItem('joystickMapping') || '{}');
 
-  // Extract the joystick number from the detected input (e.g., "js3_button1" -> 3)
-  const match = detectedInput.match(/^js(\d+)_/);
+  // Extract the prefix and number from the detected input (e.g., "js3_button1" -> js, 3)
+  const match = detectedInput.match(/^(js|gp)(\d+)_/);
   if (!match)
   {
-    return detectedInput; // No joystick number found, return as-is
+    return detectedInput; // No device number found, return as-is
   }
 
-  const detectedJsNum = parseInt(match[1]);
+  const detectedPrefix = match[1];
+  const detectedNum = parseInt(match[2]);
 
-  // The mapping uses the detected SC joystick number as the key (e.g., "3" for js3)
-  // This maps from detected SC number to desired SC number
-  if (mapping[detectedJsNum] !== undefined)
+  // Find which target device (js1, js2, gp1) maps to this detected device
+  for (const [targetDevice, mapping] of Object.entries(mappings))
   {
-    const mappedJsNum = mapping[detectedJsNum];
-
-    if (mappedJsNum === 'disabled')
+    if (mapping.detectedPrefix === detectedPrefix && mapping.detectedNum === detectedNum)
     {
-      console.log(`Joystick ${detectedJsNum} is disabled in mapping`);
-      return null; // Indicate this joystick is disabled
+      // Found a mapping - replace the device prefix and number
+      const mappedInput = detectedInput.replace(/^(js|gp)\d+_/, `${targetDevice}_`);
+      console.log(`Applied joystick mapping: ${detectedInput} -> ${mappedInput}`);
+      return mappedInput;
     }
-
-    // Replace the joystick number
-    const mappedInput = detectedInput.replace(/^js\d+_/, `js${mappedJsNum}_`);
-    console.log(`Applied joystick mapping: ${detectedInput} -> ${mappedInput} (js${detectedJsNum} mapped to js${mappedJsNum})`);
-    return mappedInput;
   }
 
   // No mapping found, return as-is
@@ -2976,7 +3051,14 @@ async function fallbackResetBinding()
     const versionElement = document.getElementById('app-version');
     if (versionElement)
     {
-      versionElement.textContent = `v${version}`;
+
+      // If the version starts with "0.", it's a beta build - append " (Beta)"
+      if (version.startsWith('0.'))
+      {
+        versionElement.textContent = `v${version} (Beta)`;
+      } else
+
+        versionElement.textContent = `v${version}`;
     }
   } catch (error)
   {

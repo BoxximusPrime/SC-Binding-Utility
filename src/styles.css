@@ -841,6 +841,12 @@ input[type="checkbox"]:disabled:hover {
   background-color: #18613c;
 }
 
+.binding-tag.gamepad {
+  border-color: #4ec9e8;
+  color: #ffffff;
+  background-color: #1a4a5c;
+}
+
 .binding-tag.unbound {
   border-color: var(--text-muted);
   color: var(--text-muted);
@@ -1160,6 +1166,10 @@ input[type="checkbox"]:disabled:hover {
   padding-top: 0;
 }
 
+#joystick-mapping-modal .modal-content {
+  max-width: 633px;
+}
+
 .modal-content h2 {
   display: flex;
   justify-content: space-between;
@@ -1337,6 +1347,85 @@ input[type="checkbox"]:disabled:hover {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+}
+
+/* New simplified stick mapping sections */
+.stick-mapping-section {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.stick-section {
+  flex: 1;
+  background: var(--bg-medium);
+  border: 1px solid var(--bg-lightest);
+  border-radius: 8px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.stick-section h3 {
+  margin: 0 0 0.5rem 0;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.stick-info {
+  min-height: 80px;
+  background: var(--bg-dark);
+  border: 1px solid var(--button-border);
+  border-radius: 6px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.stick-info .not-configured {
+  color: var(--text-secondary);
+  font-style: italic;
+  text-align: center;
+  padding: 1rem 0;
+}
+
+.stick-info .device-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 1rem;
+}
+
+.stick-info .device-details {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.stick-info .device-mapping {
+  font-size: 0.85rem;
+  color: var(--accent-primary);
+  font-weight: 500;
+}
+
+.stick-info.detecting {
+  border-color: #ffc107;
+  background: rgba(255, 193, 7, 0.05);
+}
+
+.stick-info.configured {
+  border-color: #5cb85c;
+  background: rgba(92, 184, 92, 0.05);
+}
+
+.stick-section button.detecting {
+  background: #ffc107;
+  border-color: #f0ad4e;
+}
+
+.stick-section button.detecting:hover {
+  background: #f0ad4e;
 }
 
 .joystick-mapping-item {

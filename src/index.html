@@ -75,6 +75,7 @@
                 <button class="category-item  category-item-indented" data-filter="keyboard">Keyboard</button>
                 <button class="category-item  category-item-indented" data-filter="mouse">Mouse</button>
                 <button class="category-item  category-item-indented" data-filter="joystick">Joystick</button>
+                <button class="category-item  category-item-indented" data-filter="gamepad">Gamepad</button>
                 <div class="checkbox-container">
                   <input type="checkbox" id="customized-only-checkbox" />
                   <label for="customized-only-checkbox">Customized Only</label>
@@ -127,7 +128,7 @@
           <!-- Joystick Display -->
           <div class="joystick-display">
             <!-- Quick Tips -->
-            <div class="quick-tips" style="top:3rem;right:3rem;">Middle click to pan view</div>
+            <div class="quick-tips" style="top:3rem;right:3rem;">Middle click to pan view<br>Scroll wheel to zoom</div>
 
             <div id="welcome-screen-visual" class="welcome-screen">
               <div class="welcome-content">
@@ -310,7 +311,9 @@
           <main class="editor-panel">
             <div class="canvas-container" id="canvas-container">
               <!-- Quick Tips -->
-              <div class="quick-tips">Middle click to pan view<br>Double click buttons to edit</div>
+              <div class="quick-tips">Middle click to pan view<br>Scroll wheel to zoom<br>Double click buttons to
+                edit<br>Left click + drag buttons to move
+              </div>
 
               <!-- Floating Template Controls Panel -->
               <div class="template-controls-panel">
@@ -559,14 +562,36 @@
         <h2>Configure Joystick Mapping</h2>
       </div>
       <div class="modal-body">
-        <p class="mapping-help">Map your physical joysticks to Star Citizen joystick numbers. This is useful when
-          Windows enumerates devices differently (e.g., Xbox controller shifts joystick indices).</p>
-        <div id="joystick-mapping-list" class="joystick-mapping-list">
-          <!-- Joystick mappings will be populated here -->
+        <p class="mapping-help">Click "Detect" for each device type, then press any button on the physical device you
+          want to use. The detected device will be automatically mapped.</p>
+
+        <div class="stick-mapping-section">
+          <div class="stick-section">
+            <h3>Right Stick (js1)</h3>
+            <div class="stick-info" id="js1-info">
+              <div class="not-configured">Not configured</div>
+            </div>
+            <button id="detect-js1-btn" class="btn btn-primary">🎮 Detect js1</button>
+          </div>
+
+          <div class="stick-section">
+            <h3>Left Stick (js2)</h3>
+            <div class="stick-info" id="js2-info">
+              <div class="not-configured">Not configured</div>
+            </div>
+            <button id="detect-js2-btn" class="btn btn-primary">🎮 Detect js2</button>
+          </div>
+
+          <div class="stick-section">
+            <h3>Gamepad (gp1)</h3>
+            <div class="stick-info" id="gp1-info">
+              <div class="not-configured">Not configured</div>
+            </div>
+            <button id="detect-gp1-btn" class="btn btn-primary">🎮 Detect gp1</button>
+          </div>
         </div>
       </div>
       <div class="modal-footer">
-        <button id="joystick-mapping-detect" class="btn btn-primary">🔄 Detect Joysticks</button>
         <button id="joystick-mapping-save" class="btn btn-success">Save Mapping</button>
         <button id="joystick-mapping-cancel" class="btn btn-secondary">Cancel</button>
       </div>
@@ -701,14 +726,28 @@
         <h2>Configure Joystick Mapping for Template</h2>
       </div>
       <div class="modal-body">
-        <p class="mapping-help">Map your physical joysticks to the left stick (js1) and right stick (js2) for this
-          template. Press any button on a joystick to identify it.</p>
-        <div id="template-joystick-mapping-list" class="joystick-mapping-list">
-          <!-- Joystick mappings will be populated here -->
+        <p class="mapping-help">Click "Detect" for each stick, then press any button on the physical joystick you want
+          to use. The detected joystick will be automatically mapped.</p>
+
+        <div class="stick-mapping-section">
+          <div class="stick-section">
+            <h3>Right Stick (js1)</h3>
+            <div class="stick-info" id="right-stick-info">
+              <div class="not-configured">Not configured</div>
+            </div>
+            <button id="detect-right-stick-btn" class="btn btn-primary">🎮 Detect Right Stick</button>
+          </div>
+
+          <div class="stick-section">
+            <h3>Left Stick (js2)</h3>
+            <div class="stick-info" id="left-stick-info">
+              <div class="not-configured">Not configured</div>
+            </div>
+            <button id="detect-left-stick-btn" class="btn btn-primary">🎮 Detect Left Stick</button>
+          </div>
         </div>
       </div>
       <div class="modal-footer">
-        <button id="template-joystick-mapping-detect" class="btn btn-primary">🔄 Detect Joysticks</button>
         <button id="template-joystick-mapping-save" class="btn btn-success">Save Mapping</button>
         <button id="template-joystick-mapping-cancel" class="btn btn-secondary">Cancel</button>
       </div>

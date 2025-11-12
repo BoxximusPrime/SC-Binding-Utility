@@ -155,13 +155,15 @@ function initializeEventListeners()
     const configureJoysticksBtn = document.getElementById('configure-template-joysticks-btn');
     const templateJoyMappingClose = document.getElementById('template-joystick-mapping-close');
     const templateJoyMappingCancel = document.getElementById('template-joystick-mapping-cancel');
-    const templateJoyMappingDetect = document.getElementById('template-joystick-mapping-detect');
+    const detectRightStickBtn = document.getElementById('detect-right-stick-btn');
+    const detectLeftStickBtn = document.getElementById('detect-left-stick-btn');
     const templateJoyMappingSave = document.getElementById('template-joystick-mapping-save');
 
     if (configureJoysticksBtn) configureJoysticksBtn.addEventListener('click', openTemplateJoystickMappingModal);
     if (templateJoyMappingClose) templateJoyMappingClose.addEventListener('click', closeTemplateJoystickMappingModal);
     if (templateJoyMappingCancel) templateJoyMappingCancel.addEventListener('click', closeTemplateJoystickMappingModal);
-    if (templateJoyMappingDetect) templateJoyMappingDetect.addEventListener('click', detectJoysticksForTemplate);
+    if (detectRightStickBtn) detectRightStickBtn.addEventListener('click', () => detectStick('right'));
+    if (detectLeftStickBtn) detectLeftStickBtn.addEventListener('click', () => detectStick('left'));
     if (templateJoyMappingSave) templateJoyMappingSave.addEventListener('click', saveTemplateJoystickMapping);
 
     // Zoom controls
@@ -1166,7 +1168,13 @@ async function startAddButton()
         // Show message that they need to configure the joystick mapping first
         const showAlert = window.showAlert || alert;
         await showAlert(
-            `Please configure the joystick mapping for the ${stickName} (js${jsNum}) before adding buttons.\n\nClick "Configure Joystick Mapping" in the Template Info section.`,
+            `Please configure the joystick mapping for the ${stickName} (js${jsNum}) before adding buttons.\n\n` +
+            `Click "⚙️ Set Joystick Mapping" at the top of the page, then:\n` +
+            `1. Click "Test" next to your physical ${stickName.toLowerCase()}\n` +
+            `2. Press any button on that device to detect it\n` +
+            `3. Select "${stickName}" from the dropdown\n` +
+            `4. Click "Save Mapping"\n\n` +
+            `Note: Your joystick may be detected as js1, js2, js3, etc. - any number is fine!`,
             'Configure Joystick Mapping Required'
         );
 
@@ -1964,14 +1972,32 @@ async function startHatInputDetection(direction)
             // The Rust backend now returns proper Star Citizen format
             // Examples: "js1_hat1_up", "js1_button3", "js2_axis2"
 
-            // Get the current stick's joystick number
+            // Get the current stick's configuration
             const currentStickData = currentStick === 'left' ? templateData.leftStick : templateData.rightStick;
             const templateJsNum = (currentStickData && currentStickData.joystickNumber) || templateData.joystickNumber || 1;
+            const detectedJsNumber = currentStickData?.detectedJsNumber;
+
+            // Extract the actual js number from the detected input
+            const inputMatch = result.input_string.match(/^(js|gp)(\d+)_/);
+            const actualJsNum = inputMatch ? parseInt(inputMatch[2]) : null;
+
+            // Validate that input is from the configured device (if configured)
+            if (detectedJsNumber && actualJsNum && actualJsNum !== detectedJsNumber)
+            {
+                console.warn(`Input from js${actualJsNum} but expected js${detectedJsNumber}`);
+                const stickName = currentStick === 'left' ? 'Left Stick' : 'Right Stick';
+                const otherStickName = currentStick === 'left' ? 'Right Stick' : 'Left Stick';
+                document.getElementById('hat-detection-status').textContent =
+                    `⚠️ That input is from a device not mapped to the ${stickName}. It may be mapped to the ${otherStickName} or not configured. Switch sticks or reconfigure your joystick mapping.`;
+                document.getElementById('hat-detection-status').style.color = '#f0ad4e';
+                return;
+            }
+
             let adjustedInputString = result.input_string;
 
-            // Replace jsX_ with the current stick's joystick number
-            adjustedInputString = adjustedInputString.replace(/^js\d+_/, `js${templateJsNum}_`);
-            console.log('Adjusted input string for', direction, ':', adjustedInputString);
+            // Replace jsX_ with the current stick's template joystick number (js1 or js2)
+            adjustedInputString = adjustedInputString.replace(/^(js|gp)\d+_/, `js${templateJsNum}_`);
+            console.log('Adjusted input string for', direction, '(remapped to template js number):', adjustedInputString);
 
             // Store the adjusted Star Citizen input string in tempButton
             if (tempButton)
@@ -1980,21 +2006,28 @@ async function startHatInputDetection(direction)
                 {
                     tempButton.inputs = {};
                 }
-                // Store the adjusted complete SC format string
+
+                // Store the complete SC format string (e.g., "js1_hat1_up" or "js1_button15")
                 tempButton.inputs[direction] = adjustedInputString;
 
-                // Extract button ID from the input string and update display
+                // Update display to show the detected input
                 const match = adjustedInputString.match(/button(\d+)/);
                 if (match)
                 {
                     const buttonId = parseInt(match[1]);
-                    tempButton.inputs[direction] = { type: 'button', id: buttonId };
-
-                    // Update the display with both ID and full string
                     const display = document.querySelector(`[data-direction="${direction}"].hat-id-display`);
                     if (display)
                     {
-                        display.textContent = `${buttonId} (js${templateJsNum}_button${buttonId})`;
+                        display.textContent = `${buttonId} (${adjustedInputString})`;
+                    }
+                }
+                else
+                {
+                    // For hat inputs, just show the full string
+                    const display = document.querySelector(`[data-direction="${direction}"].hat-id-display`);
+                    if (display)
+                    {
+                        display.textContent = adjustedInputString;
                     }
                 }
             }
@@ -2092,14 +2125,32 @@ async function startInputDetection()
             // The Rust backend now returns proper Star Citizen format
             // Examples: "js1_hat1_up", "js1_button3", "js2_axis2"
 
-            // Get the current stick's joystick number
+            // Get the current stick's configuration
             const currentStickData = currentStick === 'left' ? templateData.leftStick : templateData.rightStick;
             const templateJsNum = (currentStickData && currentStickData.joystickNumber) || templateData.joystickNumber || 1;
+            const detectedJsNumber = currentStickData?.detectedJsNumber;
+
+            // Extract the actual js number from the detected input
+            const inputMatch = result.input_string.match(/^(js|gp)(\d+)_/);
+            const actualJsNum = inputMatch ? parseInt(inputMatch[2]) : null;
+
+            // Validate that input is from the configured device (if configured)
+            if (detectedJsNumber && actualJsNum && actualJsNum !== detectedJsNumber)
+            {
+                console.warn(`Input from js${actualJsNum} but expected js${detectedJsNumber}`);
+                const stickName = currentStick === 'left' ? 'Left Stick' : 'Right Stick';
+                const otherStickName = currentStick === 'left' ? 'Right Stick' : 'Left Stick';
+                document.getElementById('input-detection-status').textContent =
+                    `⚠️ That input is from a device not mapped to the ${stickName}. It may be mapped to the ${otherStickName} or not configured. Switch sticks or reconfigure your joystick mapping.`;
+                document.getElementById('input-detection-status').style.color = '#f0ad4e';
+                return;
+            }
+
             let adjustedInputString = result.input_string;
 
-            // Replace jsX_ with the current stick's joystick number
-            adjustedInputString = adjustedInputString.replace(/^js\d+_/, `js${templateJsNum}_`);
-            console.log('Adjusted input string:', adjustedInputString);
+            // Replace jsX_ with the current stick's template joystick number (js1 or js2)
+            adjustedInputString = adjustedInputString.replace(/^(js|gp)\d+_/, `js${templateJsNum}_`);
+            console.log('Adjusted input string (remapped to template js number):', adjustedInputString);
 
             // Use shared utility for friendly name (use adjusted string)
             const inputName = parseInputDisplayName(adjustedInputString);
@@ -2111,9 +2162,6 @@ async function startInputDetection()
             if (tempButton)
             {
                 tempButton.buttonType = 'simple';
-                tempButton.inputs = {
-                    main: adjustedInputString  // Store the adjusted SC format
-                };
                 tempButton.name = inputName;
 
                 // Extract button ID if it's a button
@@ -2122,11 +2170,15 @@ async function startInputDetection()
                 {
                     const buttonId = parseInt(match[1]);
                     tempButton.buttonId = buttonId;
-                    tempButton.inputs.main = { type: 'button', id: buttonId };
+
+                    // Store the full SC input string (e.g., "js1_button3")
+                    tempButton.inputs = {
+                        main: adjustedInputString
+                    };
 
                     // Update the displays
                     document.getElementById('button-id-display').textContent = buttonId;
-                    document.getElementById('button-full-id-display').textContent = `js${templateJsNum}_button${buttonId}`;
+                    document.getElementById('button-full-id-display').textContent = adjustedInputString;
                 }
             }
 
@@ -2833,17 +2885,16 @@ function markAsChanged()
 // TEMPLATE JOYSTICK MAPPING
 // ============================================================================
 
-let detectedTemplateJoysticks = [];
-let testingTemplateJoystickNum = null;
-let templateTestTimeout = null;
+let currentDetectingStick = null; // 'left' or 'right'
+let detectionSessionId = null;
 
 async function openTemplateJoystickMappingModal()
 {
     const modal = document.getElementById('template-joystick-mapping-modal');
     modal.style.display = 'flex';
 
-    // Auto-detect joysticks when modal opens
-    await detectJoysticksForTemplate();
+    // Update the display to show current mappings
+    updateStickInfoDisplay();
 }
 
 function closeTemplateJoystickMappingModal()
@@ -2851,293 +2902,236 @@ function closeTemplateJoystickMappingModal()
     const modal = document.getElementById('template-joystick-mapping-modal');
     modal.style.display = 'none';
 
-    // Stop any active test
-    if (testingTemplateJoystickNum !== null)
+    // Stop any active detection
+    if (currentDetectingStick !== null)
     {
-        stopTemplateJoystickTest();
+        stopStickDetection();
     }
 }
 
-async function detectJoysticksForTemplate()
+async function detectStick(stick)
 {
-    try
+    // If already detecting this stick, stop it
+    if (currentDetectingStick === stick)
     {
-        console.log('Detecting joysticks for template...');
-        const joysticks = await invoke('detect_joysticks');
-        console.log('Detected joysticks:', joysticks);
-
-        detectedTemplateJoysticks = joysticks;
-        renderTemplateJoystickMappingList();
-
-    } catch (error)
-    {
-        console.error('Failed to detect joysticks:', error);
-        await alert(`Failed to detect joysticks: ${error}`);
-    }
-}
-
-function renderTemplateJoystickMappingList()
-{
-    const container = document.getElementById('template-joystick-mapping-list');
-
-    if (detectedTemplateJoysticks.length === 0)
-    {
-        container.innerHTML = `
-            <div class="no-joysticks">
-                <div class="no-joysticks-icon">🎮</div>
-                <p>No joysticks detected. Make sure your devices are connected and click "Detect Joysticks".</p>
-            </div>
-        `;
+        stopStickDetection();
         return;
     }
 
-    // Calculate instance numbers separately for joysticks and gamepads
-    let joystickInstanceNum = 0;
-    let gamepadInstanceNum = 0;
-
-    container.innerHTML = detectedTemplateJoysticks.map((joystick, index) =>
+    // Stop any other detection first
+    if (currentDetectingStick !== null)
     {
-        const physicalId = joystick.id;
-
-        // Check current mapping
-        const leftStickMapping = templateData.leftStick?.physicalJoystickId;
-        const rightStickMapping = templateData.rightStick?.physicalJoystickId;
-
-        let currentRole = 'none';
-        if (leftStickMapping === physicalId) currentRole = 'left';
-        else if (rightStickMapping === physicalId) currentRole = 'right';
-
-        // Use backend's device_type determination
-        const isGamepad = joystick.device_type === 'Gamepad';
-        const typeLabel = joystick.device_type;
-        const typeClass = isGamepad ? 'device-gamepad' : 'device-joystick';
-        const devicePrefix = isGamepad ? 'gp' : 'js';
-
-        // Assign instance number based on device type
-        let detectedScNum;
-        if (isGamepad)
-        {
-            gamepadInstanceNum++;
-            detectedScNum = gamepadInstanceNum;
-        } else
-        {
-            joystickInstanceNum++;
-            detectedScNum = joystickInstanceNum;
-        }
-
-        return `
-            <div class="joystick-mapping-item">
-                <div class="joystick-info">
-                    <div class="joystick-name">
-                        ${joystick.name}
-                        <span class="device-badge ${typeClass.replace('device-', '')}">${typeLabel}</span>
-                    </div>
-                    <div class="joystick-details">
-                        Currently detected as: <strong>${devicePrefix}${detectedScNum}</strong>
-                    </div>
-                    <div class="joystick-test-indicator" data-physical-id="${physicalId}" data-device-prefix="${devicePrefix}" id="template-test-indicator-${devicePrefix}${detectedScNum}">
-                        Press a button on this device to identify it...
-                    </div>
-                </div>
-                <div class="joystick-mapping-controls">
-                    <label>Assign to:</label>
-                    <select data-physical-id="${physicalId}" class="template-joystick-role-select">
-                        <option value="none" ${currentRole === 'none' ? 'selected' : ''}>Not Used</option>
-                        <option value="left" ${currentRole === 'left' ? 'selected' : ''}>Left Stick</option>
-                        <option value="right" ${currentRole === 'right' ? 'selected' : ''}>Right Stick</option>
-                    </select>
-                    <button class="btn btn-small btn-secondary template-joystick-test-btn" data-physical-id="${physicalId}" data-detected-sc-num="${detectedScNum}" data-device-prefix="${devicePrefix}">Test</button>
-                </div>
-            </div>
-        `;
-    }).join('');
-
-    // Add event listeners for test buttons
-    document.querySelectorAll('.template-joystick-test-btn').forEach(btn =>
-    {
-        btn.addEventListener('click', () => 
-        {
-            const physicalId = parseInt(btn.dataset.physicalId);
-            const detectedScNum = parseInt(btn.dataset.detectedScNum);
-            const devicePrefix = btn.dataset.devicePrefix;
-            startTemplateJoystickTest(physicalId, detectedScNum, devicePrefix);
-        });
-    });
-}
-
-async function startTemplateJoystickTest(physicalId, detectedScNum, devicePrefix)
-{
-    if (testingTemplateJoystickNum !== null)
-    {
-        // Stop current test
-        stopTemplateJoystickTest();
-        return;
+        stopStickDetection();
     }
 
-    console.log(`Starting test for template ${devicePrefix}${detectedScNum} (physical ID: ${physicalId})`);
-    testingTemplateJoystickNum = detectedScNum;
+    currentDetectingStick = stick;
+    const buttonId = stick === 'right' ? 'detect-right-stick-btn' : 'detect-left-stick-btn';
+    const infoId = stick === 'right' ? 'right-stick-info' : 'left-stick-info';
 
-    const indicator = document.getElementById(`template-test-indicator-${devicePrefix}${detectedScNum}`);
-    const btn = document.querySelector(`.template-joystick-test-btn[data-physical-id="${physicalId}"][data-device-prefix="${devicePrefix}"]`);
+    const button = document.getElementById(buttonId);
+    const infoDiv = document.getElementById(infoId);
 
-    if (indicator)
+    // Update UI to detecting state
+    if (button)
     {
-        indicator.textContent = '👂 Listening for input... Press any button!';
-        indicator.style.color = '#ffc107';
+        button.textContent = '⏹️ Stop Detecting';
+        button.classList.add('detecting');
     }
-    if (btn)
+
+    if (infoDiv)
     {
-        btn.textContent = 'Stop Test';
-        btn.classList.add('btn-warning');
+        infoDiv.classList.add('detecting');
+        infoDiv.innerHTML = '<div style="color: #ffc107; font-weight: 500;">👂 Listening... Press any button on your joystick!</div>';
     }
+
+    // Generate session ID
+    detectionSessionId = 'stick-detect-' + Date.now();
+    const sessionId = detectionSessionId;
 
     try
     {
-        // Wait for input from this specific device
-        const sessionId = 'template-test-' + Date.now();
+        console.log(`[STICK-DETECTION] Detecting ${stick} stick, session:`, sessionId);
+
         const result = await invoke('wait_for_input_binding', {
             sessionId: sessionId,
-            timeoutSecs: 10
+            timeoutSecs: 15
         });
+
+        // Check if this session is still active
+        if (detectionSessionId !== sessionId)
+        {
+            console.log(`[STICK-DETECTION] Session ${sessionId} cancelled, ignoring result`);
+            return;
+        }
 
         if (result)
         {
-            // Check if the input came from the expected device
-            const match = result.input_string.match(/^(gp|js)(\d+)_/);
+            console.log(`[STICK-DETECTION] Detected input:`, result);
+
+            // Extract js number and device info
+            const match = result.input_string.match(/^(js|gp)(\d+)_/);
             if (match)
             {
-                const inputPrefix = match[1];
-                const inputNum = parseInt(match[2]);
+                const prefix = match[1];
+                const jsNumber = parseInt(match[2]);
 
-                if (inputPrefix === devicePrefix && inputNum === detectedScNum)
+                // Get device name from backend (we'll use the input string for now)
+                const deviceName = result.display_name || `Device ${jsNumber}`;
+
+                // Store the mapping
+                const stickData = stick === 'right' ? templateData.rightStick : templateData.leftStick;
+                const targetJsNum = stick === 'right' ? 1 : 2; // Right = js1, Left = js2
+
+                stickData.detectedJsNumber = jsNumber;
+                stickData.detectedPrefix = prefix;
+                stickData.joystickNumber = targetJsNum;
+                stickData.physicalJoystickName = deviceName;
+                stickData.physicalJoystickId = jsNumber; // Use js number as ID for now
+
+                console.log(`[STICK-DETECTION] Mapped ${stick} stick: ${prefix}${jsNumber} → js${targetJsNum}`);
+
+                // Update display
+                if (infoDiv)
                 {
-                    if (indicator)
-                    {
-                        indicator.textContent = `✅ Detected: ${result.display_name}`;
-                        indicator.style.color = '#5cb85c';
-                    }
-                }
-                else
-                {
-                    if (indicator)
-                    {
-                        indicator.textContent = `❌ Input from ${inputPrefix}${inputNum}, not ${devicePrefix}${detectedScNum}`;
-                        indicator.style.color = '#d9534f';
-                    }
+                    infoDiv.classList.remove('detecting');
+                    infoDiv.classList.add('configured');
+                    infoDiv.innerHTML = `
+                        <div class="device-name">${deviceName}</div>
+                        <div class="device-details">Detected as: ${prefix}${jsNumber}</div>
+                        <div class="device-mapping">Maps to: js${targetJsNum} (${stick === 'right' ? 'Right' : 'Left'} Stick)</div>
+                    `;
                 }
             }
         }
         else
         {
-            if (indicator)
+            // Timeout
+            if (infoDiv)
             {
-                indicator.textContent = `⏱️ No input detected (timeout)`;
-                indicator.style.color = '#d9534f';
+                infoDiv.classList.remove('detecting');
+                infoDiv.innerHTML = '<div style="color: #d9534f;">⏱️ Timeout - no input detected. Try again.</div>';
+
+                setTimeout(() =>
+                {
+                    updateStickInfoDisplay();
+                }, 3000);
             }
         }
     }
     catch (error)
     {
-        console.error('Error during template joystick test:', error);
-        if (indicator)
+        console.error('[STICK-DETECTION] Error:', error);
+        if (infoDiv)
         {
-            indicator.textContent = `❌ Error: ${error.message || error}`;
-            indicator.style.color = '#d9534f';
+            infoDiv.classList.remove('detecting');
+            infoDiv.innerHTML = `<div style="color: #d9534f;">❌ Error: ${error.message || error}</div>`;
+
+            setTimeout(() =>
+            {
+                updateStickInfoDisplay();
+            }, 3000);
         }
     }
     finally
     {
-        // Reset button after 2 seconds
-        setTimeout(() =>
+        // Reset button
+        if (button)
         {
-            stopTemplateJoystickTest();
-        }, 2000);
+            const btnId = stick === 'right' ? 'detect-right-stick-btn' : 'detect-left-stick-btn';
+            const btn = document.getElementById(btnId);
+            if (btn)
+            {
+                btn.textContent = stick === 'right' ? '🎮 Detect Right Stick' : '🎮 Detect Left Stick';
+                btn.classList.remove('detecting');
+            }
+        }
+
+        if (currentDetectingStick === stick)
+        {
+            currentDetectingStick = null;
+        }
+        detectionSessionId = null;
     }
 }
 
-function stopTemplateJoystickTest()
+function stopStickDetection()
 {
-    if (testingTemplateJoystickNum === null) return;
+    if (currentDetectingStick === null) return;
 
-    console.log('Stopping template joystick test');
+    console.log(`[STICK-DETECTION] Stopping detection for ${currentDetectingStick}`);
 
-    // Reset all indicators and buttons
-    document.querySelectorAll('.template-joystick-test-btn').forEach(btn =>
+    const buttonId = currentDetectingStick === 'right' ? 'detect-right-stick-btn' : 'detect-left-stick-btn';
+    const button = document.getElementById(buttonId);
+
+    if (button)
     {
-        btn.textContent = 'Test';
-        btn.classList.remove('btn-warning');
-    });
+        button.textContent = currentDetectingStick === 'right' ? '🎮 Detect Right Stick' : '🎮 Detect Left Stick';
+        button.classList.remove('detecting');
+    }
 
-    document.querySelectorAll('.joystick-test-indicator').forEach(indicator =>
+    updateStickInfoDisplay();
+
+    currentDetectingStick = null;
+    detectionSessionId = null;
+}
+
+function updateStickInfoDisplay()
+{
+    // Update right stick info
+    const rightInfo = document.getElementById('right-stick-info');
+    if (rightInfo)
     {
-        indicator.textContent = 'Press a button on this device to identify it...';
-        indicator.style.color = '';
-    });
+        const rightStick = templateData.rightStick;
+        if (rightStick?.physicalJoystickName && rightStick?.detectedJsNumber)
+        {
+            rightInfo.classList.add('configured');
+            rightInfo.classList.remove('detecting');
+            rightInfo.innerHTML = `
+                <div class="device-name">${rightStick.physicalJoystickName}</div>
+                <div class="device-details">Detected as: ${rightStick.detectedPrefix || 'js'}${rightStick.detectedJsNumber}</div>
+                <div class="device-mapping">Maps to: js1 (Right Stick)</div>
+            `;
+        }
+        else
+        {
+            rightInfo.classList.remove('configured', 'detecting');
+            rightInfo.innerHTML = '<div class="not-configured">Not configured</div>';
+        }
+    }
 
-    testingTemplateJoystickNum = null;
+    // Update left stick info
+    const leftInfo = document.getElementById('left-stick-info');
+    if (leftInfo)
+    {
+        const leftStick = templateData.leftStick;
+        if (leftStick?.physicalJoystickName && leftStick?.detectedJsNumber)
+        {
+            leftInfo.classList.add('configured');
+            leftInfo.classList.remove('detecting');
+            leftInfo.innerHTML = `
+                <div class="device-name">${leftStick.physicalJoystickName}</div>
+                <div class="device-details">Detected as: ${leftStick.detectedPrefix || 'js'}${leftStick.detectedJsNumber}</div>
+                <div class="device-mapping">Maps to: js2 (Left Stick)</div>
+            `;
+        }
+        else
+        {
+            leftInfo.classList.remove('configured', 'detecting');
+            leftInfo.innerHTML = '<div class="not-configured">Not configured</div>';
+        }
+    }
 }
 
 async function saveTemplateJoystickMapping()
 {
-    // Read the selections
-    const leftStickSelect = document.querySelector('.template-joystick-role-select[value="left"]') ||
-        [...document.querySelectorAll('.template-joystick-role-select')].find(s => s.value === 'left');
-    const rightStickSelect = document.querySelector('.template-joystick-role-select[value="right"]') ||
-        [...document.querySelectorAll('.template-joystick-role-select')].find(s => s.value === 'right');
-
-    let leftPhysicalId = null;
-    let rightPhysicalId = null;
-
-    // Find which physical joysticks are assigned to each role
-    document.querySelectorAll('.template-joystick-role-select').forEach(select =>
-    {
-        const physicalId = parseInt(select.dataset.physicalId);
-        const role = select.value;
-
-        if (role === 'left')
-        {
-            leftPhysicalId = physicalId;
-        }
-        else if (role === 'right')
-        {
-            rightPhysicalId = physicalId;
-        }
-    });
-
     // Validate: need at least one stick assigned
-    if (leftPhysicalId === null && rightPhysicalId === null)
+    const hasRightStick = templateData.rightStick?.detectedJsNumber;
+    const hasLeftStick = templateData.leftStick?.detectedJsNumber;
+
+    if (!hasRightStick && !hasLeftStick)
     {
-        await alert('Please assign at least one joystick to a stick role (left or right).');
+        await alert('Please detect at least one joystick before saving.');
         return;
-    }
-
-    // Update template data
-    if (leftPhysicalId !== null)
-    {
-        const leftJoystick = detectedTemplateJoysticks.find(j => j.id === leftPhysicalId);
-        templateData.leftStick.physicalJoystickId = leftPhysicalId;
-        templateData.leftStick.physicalJoystickName = leftJoystick ? leftJoystick.name : 'Unknown';
-        templateData.leftStick.joystickNumber = 1; // Always js1 for left stick
-    }
-    else
-    {
-        // Clear left stick mapping
-        delete templateData.leftStick.physicalJoystickId;
-        delete templateData.leftStick.physicalJoystickName;
-    }
-
-    if (rightPhysicalId !== null)
-    {
-        const rightJoystick = detectedTemplateJoysticks.find(j => j.id === rightPhysicalId);
-        templateData.rightStick.physicalJoystickId = rightPhysicalId;
-        templateData.rightStick.physicalJoystickName = rightJoystick ? rightJoystick.name : 'Unknown';
-        templateData.rightStick.joystickNumber = 2; // Always js2 for right stick
-    }
-    else
-    {
-        // Clear right stick mapping
-        delete templateData.rightStick.physicalJoystickId;
-        delete templateData.rightStick.physicalJoystickName;
     }
 
     console.log('Saved template joystick mapping:', {
@@ -3148,8 +3142,6 @@ async function saveTemplateJoystickMapping()
     markAsChanged();
     updateStickMappingDisplay();
     closeTemplateJoystickMappingModal();
-
-    await alert('Joystick mapping saved for this template!');
 }
 
 function updateStickMappingDisplay()
@@ -3157,31 +3149,35 @@ function updateStickMappingDisplay()
     const leftDisplay = document.getElementById('left-stick-mapping');
     const rightDisplay = document.getElementById('right-stick-mapping');
 
-    if (leftDisplay)
-    {
-        if (templateData.leftStick?.physicalJoystickName)
-        {
-            leftDisplay.textContent = `${templateData.leftStick.physicalJoystickName} (js1)`;
-            leftDisplay.style.color = '#5cb85c';
-        }
-        else
-        {
-            leftDisplay.textContent = 'Not configured';
-            leftDisplay.style.color = '#999';
-        }
-    }
-
     if (rightDisplay)
     {
-        if (templateData.rightStick?.physicalJoystickName)
+        if (templateData.rightStick?.physicalJoystickName && templateData.rightStick?.detectedJsNumber)
         {
-            rightDisplay.textContent = `${templateData.rightStick.physicalJoystickName} (js2)`;
+            const detectedNum = templateData.rightStick.detectedJsNumber;
+            const prefix = templateData.rightStick.detectedPrefix || 'js';
+            rightDisplay.textContent = `${templateData.rightStick.physicalJoystickName} (${prefix}${detectedNum} → js1)`;
             rightDisplay.style.color = '#5cb85c';
         }
         else
         {
             rightDisplay.textContent = 'Not configured';
             rightDisplay.style.color = '#999';
+        }
+    }
+
+    if (leftDisplay)
+    {
+        if (templateData.leftStick?.physicalJoystickName && templateData.leftStick?.detectedJsNumber)
+        {
+            const detectedNum = templateData.leftStick.detectedJsNumber;
+            const prefix = templateData.leftStick.detectedPrefix || 'js';
+            leftDisplay.textContent = `${templateData.leftStick.physicalJoystickName} (${prefix}${detectedNum} → js2)`;
+            leftDisplay.style.color = '#5cb85c';
+        }
+        else
+        {
+            leftDisplay.textContent = 'Not configured';
+            leftDisplay.style.color = '#999';
         }
     }
 }

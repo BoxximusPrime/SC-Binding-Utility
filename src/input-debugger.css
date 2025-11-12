@@ -307,18 +307,6 @@
     }
 }
 
-.modal-content {
-    background: var(--bg-light);
-    border-radius: 8px;
-    width: 90%;
-    max-width: 600px;
-    max-height: 80vh;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    animation: slideUp 0.3s ease-out;
-}
-
 @keyframes slideUp {
     from {
         transform: translateY(50px);

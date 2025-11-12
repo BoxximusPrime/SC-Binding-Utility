@@ -727,6 +727,36 @@ pub fn wait_for_inputs_with_events(window: tauri::Window, session_id: String, in
 
     let mut gilrs = Gilrs::new().map_err(|e| e.to_string())?;
     
+    // Initialize XInput for Xbox controller support
+    let xinput = XInputHandle::load_default().map_err(|e| format!("Failed to load XInput: {:?}", e))?;
+    let mut xinput_prev_states = [None, None, None, None]; // Track previous state for 4 possible controllers
+    
+    // Track XInput axis states (controller_id, axis_index) -> last triggered direction
+    let mut xinput_axis_states: HashMap<(u32, u32), AxisState> = HashMap::new();
+    
+    // Initialize XInput states
+    for i in 0..4 {
+        if let Ok(state) = xinput.get_state(i) {
+            xinput_prev_states[i as usize] = Some(state);
+            
+            // Initialize axis states for this controller
+            // Normalize XInput values to -1.0 to 1.0 range
+            let left_x = (state.raw.Gamepad.sThumbLX as f32) / 32768.0;
+            let left_y = (state.raw.Gamepad.sThumbLY as f32) / 32768.0;
+            let right_x = (state.raw.Gamepad.sThumbRX as f32) / 32768.0;
+            let right_y = (state.raw.Gamepad.sThumbRY as f32) / 32768.0;
+            let left_trigger = (state.raw.Gamepad.bLeftTrigger as f32) / 255.0;
+            let right_trigger = (state.raw.Gamepad.bRightTrigger as f32) / 255.0;
+            
+            xinput_axis_states.insert((i, 1), AxisState { last_value: left_x, last_triggered_direction: None });
+            xinput_axis_states.insert((i, 2), AxisState { last_value: left_y, last_triggered_direction: None });
+            xinput_axis_states.insert((i, 3), AxisState { last_value: right_x, last_triggered_direction: None });
+            xinput_axis_states.insert((i, 4), AxisState { last_value: right_y, last_triggered_direction: None });
+            xinput_axis_states.insert((i, 5), AxisState { last_value: left_trigger * 2.0 - 1.0, last_triggered_direction: None });
+            xinput_axis_states.insert((i, 6), AxisState { last_value: right_trigger * 2.0 - 1.0, last_triggered_direction: None });
+        }
+    }
+    
     // Track axis states to prevent duplicate triggers
     let mut axis_states: HashMap<(usize, u32), AxisState> = HashMap::new();
     
@@ -945,6 +975,137 @@ pub fn wait_for_inputs_with_events(window: tauri::Window, session_id: String, in
                         first_input_time = Some(Instant::now());
                     }
                 }
+            }
+        }
+        
+        // Poll XInput controllers for button presses and axis movements
+        for controller_id in 0..4 {
+            if let Ok(state) = xinput.get_state(controller_id) {
+                if let Some(prev_state) = &xinput_prev_states[controller_id as usize] {
+                    // Check if any button was newly pressed
+                    let buttons_pressed = state.raw.Gamepad.wButtons & !prev_state.raw.Gamepad.wButtons;
+                    
+                    if buttons_pressed != 0 {
+                        // Find which button was pressed
+                        let button_num = if buttons_pressed & 0x1000 != 0 { 1 }      // A
+                        else if buttons_pressed & 0x2000 != 0 { 2 }                  // B  
+                        else if buttons_pressed & 0x4000 != 0 { 3 }                  // X
+                        else if buttons_pressed & 0x8000 != 0 { 4 }                  // Y
+                        else if buttons_pressed & 0x0100 != 0 { 5 }                  // LB
+                        else if buttons_pressed & 0x0200 != 0 { 6 }                  // RB
+                        else if buttons_pressed & 0x0010 != 0 { 7 }                  // Back
+                        else if buttons_pressed & 0x0020 != 0 { 8 }                  // Start
+                        else if buttons_pressed & 0x0040 != 0 { 9 }                  // LS (Left Stick Click)
+                        else if buttons_pressed & 0x0080 != 0 { 10 }                 // RS (Right Stick Click)
+                        else if buttons_pressed & 0x0001 != 0 { 11 }                 // DPad Up
+                        else if buttons_pressed & 0x0002 != 0 { 12 }                 // DPad Down
+                        else if buttons_pressed & 0x0004 != 0 { 13 }                 // DPad Left
+                        else if buttons_pressed & 0x0008 != 0 { 14 }                 // DPad Right
+                        else { 0 };
+                        
+                        if button_num > 0 {
+                            let sc_instance = controller_id as usize + 1;
+                            let input_string = format!("gp{}_button{}", sc_instance, button_num);
+                            
+                            // Check if we've already emitted this input in this session
+                            if !detected_inputs.contains(&input_string) {
+                                detected_inputs.insert(input_string.clone());
+                                
+                                let input = DetectedInput {
+                                    input_string,
+                                    display_name: format!("Gamepad {} - Button {}", sc_instance, button_num),
+                                    device_type: "Gamepad".to_string(),
+                                    axis_value: None,
+                                    modifiers: get_active_modifiers(),
+                                    is_modifier: false,
+                                    session_id: session_id.clone(),
+                                };
+                                
+                                // Emit event immediately
+                                let _ = window.emit("input-detected", &input);
+                                
+                                // Mark the time when first input was detected
+                                if first_input_time.is_none() {
+                                    first_input_time = Some(Instant::now());
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Check for axis movements
+                    // Normalize XInput values to -1.0 to 1.0 range
+                    let axes = [
+                        (1, (state.raw.Gamepad.sThumbLX as f32) / 32768.0, "Left Stick X"),
+                        (2, (state.raw.Gamepad.sThumbLY as f32) / 32768.0, "Left Stick Y"),
+                        (3, (state.raw.Gamepad.sThumbRX as f32) / 32768.0, "Right Stick X"),
+                        (4, (state.raw.Gamepad.sThumbRY as f32) / 32768.0, "Right Stick Y"),
+                        (5, (state.raw.Gamepad.bLeftTrigger as f32) / 255.0 * 2.0 - 1.0, "Left Trigger"),
+                        (6, (state.raw.Gamepad.bRightTrigger as f32) / 255.0 * 2.0 - 1.0, "Right Trigger"),
+                    ];
+                    
+                    for (axis_index, value, axis_name) in axes.iter() {
+                        let axis_key = (controller_id, *axis_index);
+                        let state_entry = xinput_axis_states.entry(axis_key).or_insert(AxisState {
+                            last_value: *value,
+                            last_triggered_direction: None,
+                        });
+                        
+                        let movement_delta = (value - state_entry.last_value).abs();
+                        const MOVEMENT_THRESHOLD: f32 = 0.3;
+                        const AXIS_TRIGGER_THRESHOLD: f32 = 0.5;
+                        const AXIS_RESET_THRESHOLD: f32 = 0.3;
+                        
+                        let is_positive = *value > AXIS_TRIGGER_THRESHOLD;
+                        let is_negative = *value < -AXIS_TRIGGER_THRESHOLD;
+                        let is_centered = value.abs() < AXIS_RESET_THRESHOLD;
+                        let has_moved_enough = movement_delta > MOVEMENT_THRESHOLD;
+                        
+                        if is_centered {
+                            state_entry.last_triggered_direction = None;
+                            state_entry.last_value = *value;
+                        }
+                        
+                        let should_trigger_positive = is_positive && has_moved_enough && state_entry.last_triggered_direction != Some(true);
+                        let should_trigger_negative = is_negative && has_moved_enough && state_entry.last_triggered_direction != Some(false);
+                        
+                        if should_trigger_positive || should_trigger_negative {
+                            let direction = if should_trigger_positive { "positive" } else { "negative" };
+                            let direction_symbol = if should_trigger_positive { "+" } else { "-" };
+                            
+                            state_entry.last_triggered_direction = Some(should_trigger_positive);
+                            state_entry.last_value = *value;
+                            
+                            let sc_instance = controller_id as usize + 1;
+                            let input_string = format!("gp{}_axis{}_{}", sc_instance, axis_index, direction);
+                            
+                            // Check if we've already emitted this input in this session
+                            if !detected_inputs.contains(&input_string) {
+                                detected_inputs.insert(input_string.clone());
+                                
+                                let input = DetectedInput {
+                                    input_string,
+                                    display_name: format!("Gamepad {} - {} {} (Axis {})", sc_instance, axis_name, direction_symbol, axis_index),
+                                    device_type: "Gamepad".to_string(),
+                                    axis_value: Some(*value),
+                                    modifiers: get_active_modifiers(),
+                                    is_modifier: false,
+                                    session_id: session_id.clone(),
+                                };
+                                
+                                // Emit event immediately
+                                let _ = window.emit("input-detected", &input);
+                                
+                                // Mark the time when first input was detected
+                                if first_input_time.is_none() {
+                                    first_input_time = Some(Instant::now());
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Update previous state
+                xinput_prev_states[controller_id as usize] = Some(state);
             }
         }
     }

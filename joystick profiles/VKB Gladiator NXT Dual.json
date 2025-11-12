@@ -15,369 +15,273 @@
     "joystickNumber": 2,
     "buttons": [
       {
-        "id": 1762500023378,
-        "name": "Button 3",
-        "buttonPos": {
-          "x": 373.32605633802814,
-          "y": 131.97464788732393
-        },
-        "labelPos": {
-          "x": 560,
-          "y": 180
-        },
-        "buttonType": "simple",
-        "inputs": {
-          "main": {
-            "type": "button",
-            "id": 3
-          }
-        }
-      },
-      {
-        "id": 1762502108856,
+        "id": 1762948619430,
         "name": "Left Hat",
         "buttonPos": {
-          "x": 317.85845070422533,
-          "y": 55.46760563380281
+          "x": 322.545113481799,
+          "y": 59.087798234985584
         },
         "labelPos": {
-          "x": 120,
-          "y": -60
+          "x": 224.77852259731267,
+          "y": -70.28754007831958
         },
         "buttonType": "hat4way",
         "inputs": {
-          "up": {
-            "type": "button",
-            "id": 11
-          },
-          "down": {
-            "type": "button",
-            "id": 13
-          },
-          "left": {
-            "type": "button",
-            "id": 14
-          },
-          "right": {
-            "type": "button",
-            "id": 12
-          },
-          "push": {
-            "type": "button",
-            "id": 15
-          }
+          "up": "js2_button11",
+          "down": "js2_button13",
+          "left": "js2_button14",
+          "right": "js2_button12",
+          "push": "js2_button15"
         }
       },
       {
-        "id": 1762502143079,
-        "name": "Side Hat",
-        "buttonPos": {
-          "x": 325.50915492957745,
-          "y": 241.95352112676056
-        },
-        "labelPos": {
-          "x": 550,
-          "y": 370
-        },
-        "buttonType": "hat4way",
-        "inputs": {
-          "up": {
-            "type": "button",
-            "id": 16
-          },
-          "down": {
-            "type": "button",
-            "id": 18
-          },
-          "left": {
-            "type": "button",
-            "id": 19
-          },
-          "right": {
-            "type": "button",
-            "id": 17
-          },
-          "push": {
-            "type": "button",
-            "id": 20
-          }
-        }
-      },
-      {
-        "id": 1762502181810,
-        "name": "Middle Hat",
-        "buttonPos": {
-          "x": 336.9852112676056,
-          "y": 109.0225352112676
-        },
-        "labelPos": {
-          "x": 136.3383257688592,
-          "y": 139.73615869741397
-        },
-        "buttonType": "hat4way",
-        "inputs": {
-          "up": {
-            "type": "button",
-            "id": 6
-          },
-          "down": {
-            "type": "button",
-            "id": 8
-          },
-          "left": {
-            "type": "button",
-            "id": 9
-          },
-          "right": {
-            "type": "button",
-            "id": 7
-          }
-        }
-      },
-      {
-        "id": 1762502254979,
-        "name": "Button 5",
-        "buttonPos": {
-          "x": 330.2908450704225,
-          "y": 346.19436619718306
-        },
-        "labelPos": {
-          "x": 550,
-          "y": 490
-        },
-        "buttonType": "simple",
-        "inputs": {}
-      },
-      {
-        "id": 1762502288473,
-        "name": "Button 4",
-        "buttonPos": {
-          "x": 346.5485915492958,
-          "y": 82.2450704225352
-        },
-        "labelPos": {
-          "x": 347.63071655465444,
-          "y": -30.583566180932262
-        },
-        "buttonType": "simple",
-        "inputs": {
-          "main": {
-            "type": "button",
-            "id": 4
-          }
-        }
-      },
-      {
-        "id": 1762502310031,
-        "name": "Button 10",
-        "buttonPos": {
-          "x": 376.1950704225352,
-          "y": 183.6169014084507
-        },
-        "labelPos": {
-          "x": 560,
-          "y": 240
-        },
-        "buttonType": "simple",
-        "inputs": {
-          "main": {
-            "type": "button",
-            "id": 10
-          }
-        }
-      },
-      {
-        "id": 1762502564905,
-        "name": "Button 25",
-        "buttonPos": {
-          "x": 153.5,
-          "y": 559.5
-        },
-        "labelPos": {
-          "x": 110,
-          "y": 710
-        },
-        "buttonType": "simple",
-        "inputs": {
-          "main": {
-            "type": "button",
-            "id": 25
-          }
-        }
-      },
-      {
-        "id": 1762563407962,
-        "name": "Button 23",
-        "buttonPos": {
-          "x": 78.0394922425952,
-          "y": 511.4047954866008
-        },
-        "labelPos": {
-          "x": -100,
-          "y": 510
-        },
-        "buttonType": "simple",
-        "inputs": {
-          "main": {
-            "type": "button",
-            "id": 23
-          }
-        }
-      },
-      {
-        "id": 1762563430132,
-        "name": "Button 24",
-        "buttonPos": {
-          "x": 78.99717912552887,
-          "y": 511.4047954866008
-        },
-        "labelPos": {
-          "x": -100,
-          "y": 570
-        },
-        "buttonType": "simple",
-        "inputs": {
-          "main": {
-            "type": "button",
-            "id": 24
-          }
-        }
-      },
-      {
-        "id": 1762563439166,
-        "name": "Button 26",
-        "buttonPos": {
-          "x": 154.65444287729196,
-          "y": 560.24682651622
-        },
-        "labelPos": {
-          "x": 110,
-          "y": 770
-        },
-        "buttonType": "simple",
-        "inputs": {
-          "main": {
-            "type": "button",
-            "id": 26
-          }
-        }
-      },
-      {
-        "id": 1762564895296,
-        "name": "Button 50",
-        "buttonPos": {
-          "x": 441.36585660436845,
-          "y": 144.35611392451762
-        },
-        "labelPos": {
-          "x": 580,
-          "y": 30
-        },
-        "buttonType": "simple",
-        "inputs": {
-          "main": {
-            "type": "button",
-            "id": 50
-          }
-        }
-      },
-      {
-        "id": 1762564907729,
-        "name": "Button 22",
-        "buttonPos": {
-          "x": 441.9740615488328,
-          "y": 144.96431886898196
-        },
-        "labelPos": {
-          "x": 580,
-          "y": 90
-        },
-        "buttonType": "simple",
-        "inputs": {
-          "main": {
-            "type": "button",
-            "id": 22
-          }
-        }
-      },
-      {
-        "id": 1762637846714,
+        "id": 1762948638569,
         "name": "Right Hat",
         "buttonPos": {
-          "x": 375.73501582959676,
-          "y": 74.25551738722798
+          "x": 370,
+          "y": 80
         },
         "labelPos": {
-          "x": 573.6526989899971,
-          "y": -100.5394700756598
+          "x": 480,
+          "y": -90
         },
         "buttonType": "hat4way",
         "inputs": {
           "up": "js2_hat1_up",
           "down": "js2_hat1_down",
           "left": "js2_hat1_left",
-          "right": "js2_hat1_right",
-          "push": {
-            "type": "button",
-            "id": 32
-          }
+          "right": "js2_hat1_right"
         }
       },
       {
-        "id": 1762721173539,
+        "id": 1762948702892,
+        "name": "Button 3",
+        "buttonPos": {
+          "x": 371.0608653492884,
+          "y": 131.86142603621974
+        },
+        "labelPos": {
+          "x": 570,
+          "y": 20
+        },
+        "buttonType": "simple",
+        "inputs": {
+          "main": "js2_button3"
+        }
+      },
+      {
+        "id": 1762948720708,
+        "name": "Button 1",
+        "buttonPos": {
+          "x": 382.0871725918996,
+          "y": 182.5824393522314
+        },
+        "labelPos": {
+          "x": 570,
+          "y": 250
+        },
+        "buttonType": "simple",
+        "inputs": {
+          "main": "js2_button1"
+        }
+      },
+      {
+        "id": 1762948729432,
+        "name": "Button 21",
+        "buttonPos": {
+          "x": 418.8415300672704,
+          "y": 148.7684304748903
+        },
+        "labelPos": {
+          "x": 570,
+          "y": 90
+        },
+        "buttonType": "simple",
+        "inputs": {
+          "main": "js2_button21"
+        }
+      },
+      {
+        "id": 1762948733351,
+        "name": "Button 22",
+        "buttonPos": {
+          "x": 421.0467915157927,
+          "y": 150.23860477390514
+        },
+        "labelPos": {
+          "x": 570,
+          "y": 150
+        },
+        "buttonType": "simple",
+        "inputs": {
+          "main": "js2_button22"
+        }
+      },
+      {
+        "id": 1762948758650,
+        "name": "Side Hat",
+        "buttonPos": {
+          "x": 324.0152877808138,
+          "y": 242.1244984623321
+        },
+        "labelPos": {
+          "x": 560,
+          "y": 410
+        },
+        "buttonType": "hat4way",
+        "inputs": {
+          "up": "js2_button16",
+          "down": "js2_button18",
+          "left": "js2_button19",
+          "right": "js2_button17",
+          "push": "js2_button20"
+        }
+      },
+      {
+        "id": 1762948803524,
         "name": "Button 28",
         "buttonPos": {
-          "x": 163.32010347213324,
-          "y": 470.24398460539817
+          "x": 122.2155008902941,
+          "y": 452.6207696143923
         },
         "labelPos": {
-          "x": -1.4467052399879434,
-          "y": 360.9352724841861
+          "x": -30,
+          "y": 300
         },
         "buttonType": "simple",
         "inputs": {
-          "main": {
-            "type": "button",
-            "id": 28
-          }
+          "main": "js2_button28"
         }
       },
       {
-        "id": 1762721287092,
-        "name": "Button 29",
-        "buttonPos": {
-          "x": 131.97422279031505,
-          "y": 458.18787665085273
-        },
-        "labelPos": {
-          "x": 0.964516350921147,
-          "y": 425.2345149084285
-        },
-        "buttonType": "simple",
-        "inputs": {
-          "main": {
-            "type": "button",
-            "id": 29
-          }
-        }
-      },
-      {
-        "id": 1762723093995,
+        "id": 1762948808705,
         "name": "Button 27",
         "buttonPos": {
-          "x": 198.7588259178527,
-          "y": 493.2534095583835
+          "x": 173.67160135581318,
+          "y": 469.5277740530629
         },
         "labelPos": {
-          "x": -1.3725661276018113,
-          "y": 292.31827698262595
+          "x": -10,
+          "y": 360
         },
         "buttonType": "simple",
         "inputs": {
-          "main": {
-            "type": "button",
-            "id": 27
-          }
+          "main": "js2_button27"
+        }
+      },
+      {
+        "id": 1762948812313,
+        "name": "Button 29",
+        "buttonPos": {
+          "x": 196.45930299054308,
+          "y": 493.78564998680764
+        },
+        "labelPos": {
+          "x": 10,
+          "y": 420
+        },
+        "buttonType": "simple",
+        "inputs": {
+          "main": "js2_button29"
+        }
+      },
+      {
+        "id": 1762948836442,
+        "name": "Button 23",
+        "buttonPos": {
+          "x": 79.58044621886398,
+          "y": 518.0435259205524
+        },
+        "labelPos": {
+          "x": -110,
+          "y": 520
+        },
+        "buttonType": "simple",
+        "inputs": {
+          "main": "js2_button23"
+        }
+      },
+      {
+        "id": 1762948840787,
+        "name": "Button 24",
+        "buttonPos": {
+          "x": 78.84535906935656,
+          "y": 520.2487873690745
+        },
+        "labelPos": {
+          "x": -110,
+          "y": 580
+        },
+        "buttonType": "simple",
+        "inputs": {
+          "main": "js2_button24"
+        }
+      },
+      {
+        "id": 1762948847751,
+        "name": "Button 25",
+        "buttonPos": {
+          "x": 153.82424831911297,
+          "y": 560.6785805919825
+        },
+        "labelPos": {
+          "x": 330,
+          "y": 700
+        },
+        "buttonType": "simple",
+        "inputs": {
+          "main": "js2_button25"
+        }
+      },
+      {
+        "id": 1762948856894,
+        "name": "Button 26",
+        "buttonPos": {
+          "x": 156.76459691714263,
+          "y": 565.8241906385343
+        },
+        "labelPos": {
+          "x": 330,
+          "y": 760
+        },
+        "buttonType": "simple",
+        "inputs": {
+          "main": "js2_button26"
+        }
+      },
+      {
+        "id": 1762949048328,
+        "name": "Button 4",
+        "buttonPos": {
+          "x": 340,
+          "y": 80
+        },
+        "labelPos": {
+          "x": 100,
+          "y": 30
+        },
+        "buttonType": "simple",
+        "inputs": {
+          "main": "js2_button4"
+        }
+      },
+      {
+        "id": 1762949075440,
+        "name": "Middle Hat",
+        "buttonPos": {
+          "x": 330.8803750290528,
+          "y": 112.39655779062
+        },
+        "labelPos": {
+          "x": 113.31407368211066,
+          "y": 173.17878819302942
+        },
+        "buttonType": "hat4way",
+        "inputs": {
+          "up": "js2_button6",
+          "down": "js2_button8",
+          "left": "js2_button9",
+          "right": "js2_button7"
         }
       }
     ]
@@ -386,374 +290,273 @@
     "joystickNumber": 1,
     "buttons": [
       {
-        "id": 1762500023378,
+        "id": 1762949209639.436,
+        "name": "Left Hat",
+        "buttonPos": {
+          "x": 197.45488651820102,
+          "y": 59.087798234985584
+        },
+        "labelPos": {
+          "x": 295.22147740268736,
+          "y": -70.28754007831958
+        },
+        "buttonType": "hat4way",
+        "inputs": {
+          "up": "js2_button11",
+          "down": "js2_button13",
+          "left": "js2_button14",
+          "right": "js2_button12",
+          "push": "js2_button15"
+        }
+      },
+      {
+        "id": 1762949209639.2715,
+        "name": "Right Hat",
+        "buttonPos": {
+          "x": 150,
+          "y": 80
+        },
+        "labelPos": {
+          "x": 40,
+          "y": -90
+        },
+        "buttonType": "hat4way",
+        "inputs": {
+          "up": "js2_hat1_up",
+          "down": "js2_hat1_down",
+          "left": "js2_hat1_left",
+          "right": "js2_hat1_right"
+        }
+      },
+      {
+        "id": 1762949209639.305,
         "name": "Button 3",
         "buttonPos": {
-          "x": 146.67394366197186,
-          "y": 131.97464788732393
+          "x": 148.9391346507116,
+          "y": 131.86142603621974
         },
         "labelPos": {
-          "x": -54.666396253028054,
-          "y": 196.61511274978858
+          "x": -50,
+          "y": 20
         },
         "buttonType": "simple",
         "inputs": {
-          "main": {
-            "type": "button",
-            "id": 3
-          }
+          "main": "js2_button3"
         }
       },
       {
-        "id": 1762502143079,
-        "name": "Side Hat",
-        "buttonPos": {
-          "x": 194.49084507042255,
-          "y": 241.95352112676056
-        },
-        "labelPos": {
-          "x": -104.51081391491037,
-          "y": 357.30756371943903
-        },
-        "buttonType": "hat4way",
-        "inputs": {
-          "up": {
-            "type": "button",
-            "id": 30
-          },
-          "down": {
-            "type": "button",
-            "id": 18
-          },
-          "left": {
-            "type": "button",
-            "id": 19
-          },
-          "right": {
-            "type": "button",
-            "id": 17
-          },
-          "push": {
-            "type": "button",
-            "id": 29
-          }
-        }
-      },
-      {
-        "id": 1762502181810,
-        "name": "Middle Hat",
-        "buttonPos": {
-          "x": 183.01478873239438,
-          "y": 109.0225352112676
-        },
-        "labelPos": {
-          "x": 383.6616742311408,
-          "y": 139.73615869741397
-        },
-        "buttonType": "hat4way",
-        "inputs": {
-          "up": {
-            "type": "button",
-            "id": 6
-          },
-          "down": {
-            "type": "button",
-            "id": 8
-          },
-          "left": {
-            "type": "button",
-            "id": 9
-          },
-          "right": {
-            "type": "button",
-            "id": 7
-          }
-        }
-      },
-      {
-        "id": 1762502216087,
-        "name": "Button 28",
-        "buttonPos": {
-          "x": 318.8147887323944,
-          "y": 491.5577464788732
-        },
-        "labelPos": {
-          "x": 520,
-          "y": 290
-        },
-        "buttonType": "simple",
-        "inputs": {
-          "main": {
-            "type": "button",
-            "id": 28
-          }
-        }
-      },
-      {
-        "id": 1762502229642,
-        "name": "Button 27",
-        "buttonPos": {
-          "x": 355.1556338028169,
-          "y": 469.5619718309859
-        },
-        "labelPos": {
-          "x": 520,
-          "y": 350
-        },
-        "buttonType": "simple",
-        "inputs": {
-          "main": {
-            "type": "button",
-            "id": 27
-          }
-        }
-      },
-      {
-        "id": 1762502242032,
-        "name": "Button 29",
-        "buttonPos": {
-          "x": 389.5838028169014,
-          "y": 455.21690140845067
-        },
-        "labelPos": {
-          "x": 520,
-          "y": 410
-        },
-        "buttonType": "simple",
-        "inputs": {
-          "main": {
-            "type": "button",
-            "id": 29
-          }
-        }
-      },
-      {
-        "id": 1762502254979,
-        "name": "Button 5",
-        "buttonPos": {
-          "x": 189.7091549295775,
-          "y": 346.19436619718306
-        },
-        "labelPos": {
-          "x": -3.3340855266119362,
-          "y": 487.4982068661466
-        },
-        "buttonType": "simple",
-        "inputs": {
-          "main": {
-            "type": "button",
-            "id": 5
-          }
-        }
-      },
-      {
-        "id": 1762502288473,
-        "name": "Button 4",
-        "buttonPos": {
-          "x": 173.45140845070424,
-          "y": 82.2450704225352
-        },
-        "labelPos": {
-          "x": 172.3692834453456,
-          "y": -30.583566180932262
-        },
-        "buttonType": "simple",
-        "inputs": {
-          "main": {
-            "type": "button",
-            "id": 4
-          }
-        }
-      },
-      {
-        "id": 1762502310031,
+        "id": 1762949209639.188,
         "name": "Button 1",
         "buttonPos": {
-          "x": 143.8049295774648,
-          "y": 183.6169014084507
+          "x": 137.91282740810038,
+          "y": 182.5824393522314
         },
         "labelPos": {
-          "x": 32.375348022199276,
-          "y": 262.8263541215427
+          "x": -50,
+          "y": 250
         },
         "buttonType": "simple",
         "inputs": {
-          "main": {
-            "type": "button",
-            "id": 1
-          }
+          "main": "js2_button1"
         }
       },
       {
-        "id": 1762502564905,
+        "id": 1762949209639.8308,
+        "name": "Button 21",
+        "buttonPos": {
+          "x": 101.15846993272959,
+          "y": 148.7684304748903
+        },
+        "labelPos": {
+          "x": -50,
+          "y": 90
+        },
+        "buttonType": "simple",
+        "inputs": {
+          "main": "js2_button21"
+        }
+      },
+      {
+        "id": 1762949209639.7102,
+        "name": "Button 22",
+        "buttonPos": {
+          "x": 98.95320848420732,
+          "y": 150.23860477390514
+        },
+        "labelPos": {
+          "x": -50,
+          "y": 150
+        },
+        "buttonType": "simple",
+        "inputs": {
+          "main": "js2_button22"
+        }
+      },
+      {
+        "id": 1762949209639.975,
+        "name": "Side Hat",
+        "buttonPos": {
+          "x": 195.98471221918618,
+          "y": 242.1244984623321
+        },
+        "labelPos": {
+          "x": -40,
+          "y": 410
+        },
+        "buttonType": "hat4way",
+        "inputs": {
+          "up": "js2_button16",
+          "down": "js2_button18",
+          "left": "js2_button19",
+          "right": "js2_button17",
+          "push": "js2_button20"
+        }
+      },
+      {
+        "id": 1762949209639.4187,
+        "name": "Button 28",
+        "buttonPos": {
+          "x": 397.7844991097059,
+          "y": 452.6207696143923
+        },
+        "labelPos": {
+          "x": 550,
+          "y": 300
+        },
+        "buttonType": "simple",
+        "inputs": {
+          "main": "js2_button28"
+        }
+      },
+      {
+        "id": 1762949209639.816,
+        "name": "Button 27",
+        "buttonPos": {
+          "x": 346.3283986441868,
+          "y": 469.5277740530629
+        },
+        "labelPos": {
+          "x": 530,
+          "y": 360
+        },
+        "buttonType": "simple",
+        "inputs": {
+          "main": "js2_button27"
+        }
+      },
+      {
+        "id": 1762949209639.4084,
+        "name": "Button 29",
+        "buttonPos": {
+          "x": 323.54069700945695,
+          "y": 493.78564998680764
+        },
+        "labelPos": {
+          "x": 510,
+          "y": 420
+        },
+        "buttonType": "simple",
+        "inputs": {
+          "main": "js2_button29"
+        }
+      },
+      {
+        "id": 1762949209639.842,
         "name": "Button 23",
         "buttonPos": {
-          "x": 366.5,
-          "y": 559.5
-        },
-        "labelPos": {
-          "x": 430,
-          "y": 660
-        },
-        "buttonType": "simple",
-        "inputs": {
-          "main": {
-            "type": "button",
-            "id": 23
-          }
-        }
-      },
-      {
-        "id": 1762563407962,
-        "name": "Button 40",
-        "buttonPos": {
-          "x": 441.9605077574048,
-          "y": 511.4047954866008
-        },
-        "labelPos": {
-          "x": 630.7355901634322,
-          "y": 500.18719346627654
-        },
-        "buttonType": "simple",
-        "inputs": {
-          "main": {
-            "type": "button",
-            "id": 40
-          }
-        }
-      },
-      {
-        "id": 1762563430132,
-        "name": "Button 26",
-        "buttonPos": {
-          "x": 441.0028208744711,
-          "y": 511.4047954866008
+          "x": 440.419553781136,
+          "y": 518.0435259205524
         },
         "labelPos": {
           "x": 630,
-          "y": 560
+          "y": 520
         },
         "buttonType": "simple",
         "inputs": {
-          "main": {
-            "type": "button",
-            "id": 26
-          }
+          "main": "js2_button23"
         }
       },
       {
-        "id": 1762563439166,
+        "id": 1762949209639.6497,
         "name": "Button 24",
         "buttonPos": {
-          "x": 365.34555712270804,
-          "y": 560.24682651622
+          "x": 441.15464093064344,
+          "y": 520.2487873690745
         },
         "labelPos": {
-          "x": 430,
-          "y": 720
+          "x": 630,
+          "y": 580
         },
         "buttonType": "simple",
         "inputs": {
-          "main": {
-            "type": "button",
-            "id": 24
-          }
+          "main": "js2_button24"
         }
       },
       {
-        "id": 1762564895296,
-        "name": "Button 21",
+        "id": 1762949209639.3154,
+        "name": "Button 25",
         "buttonPos": {
-          "x": 78.63414339563153,
-          "y": 144.35611392451762
+          "x": 366.17575168088706,
+          "y": 560.6785805919825
         },
         "labelPos": {
-          "x": -156.5870711735934,
-          "y": 57.49711121587825
+          "x": 190,
+          "y": 700
         },
         "buttonType": "simple",
         "inputs": {
-          "main": {
-            "type": "button",
-            "id": 21
-          }
+          "main": "js2_button25"
         }
       },
       {
-        "id": 1762564907729,
-        "name": "Button 22",
+        "id": 1762949209639.5544,
+        "name": "Button 26",
         "buttonPos": {
-          "x": 78.02593845116718,
-          "y": 144.96431886898196
+          "x": 363.2354030828574,
+          "y": 565.8241906385343
         },
         "labelPos": {
-          "x": -157.95758000100042,
-          "y": 125.50176064612276
+          "x": 190,
+          "y": 760
         },
         "buttonType": "simple",
         "inputs": {
-          "main": {
-            "type": "button",
-            "id": 22
-          }
+          "main": "js2_button26"
         }
       },
       {
-        "id": 1762637715732,
-        "name": "Left Hat",
+        "id": 1762949209639.3723,
+        "name": "Button 4",
         "buttonPos": {
-          "x": 137.1066705566099,
-          "y": 75.64555307421396
+          "x": 180,
+          "y": 80
         },
         "labelPos": {
-          "x": -73.52404124671095,
-          "y": -86.04192279140578
+          "x": 420,
+          "y": 30
+        },
+        "buttonType": "simple",
+        "inputs": {
+          "main": "js2_button4"
+        }
+      },
+      {
+        "id": 1762949209639.0754,
+        "name": "Middle Hat",
+        "buttonPos": {
+          "x": 189.1196249709472,
+          "y": 112.39655779062
+        },
+        "labelPos": {
+          "x": 406.6859263178893,
+          "y": 173.17878819302942
         },
         "buttonType": "hat4way",
         "inputs": {
-          "up": "js1_hat1_up",
-          "down": "js1_hat1_down",
-          "left": "js1_hat1_left",
-          "right": "js1_hat1_right",
-          "push": {
-            "type": "button",
-            "id": 30
-          }
-        }
-      },
-      {
-        "id": 1762637794868,
-        "name": "Right Hat",
-        "buttonPos": {
-          "x": 200.44439943256484,
-          "y": 57.96548114102729
-        },
-        "labelPos": {
-          "x": 358.1610642731477,
-          "y": -93.79961144142035
-        },
-        "buttonType": "hat4way",
-        "inputs": {
-          "up": {
-            "type": "button",
-            "id": 11
-          },
-          "down": {
-            "type": "button",
-            "id": 13
-          },
-          "left": {
-            "type": "button",
-            "id": 14
-          },
-          "right": {
-            "type": "button",
-            "id": 12
-          },
-          "push": {
-            "type": "button",
-            "id": 15
-          }
+          "up": "js2_button6",
+          "down": "js2_button8",
+          "left": "js2_button9",
+          "right": "js2_button7"
         }
       }
     ]
