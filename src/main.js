@@ -2,6 +2,7 @@ const { invoke } = window.__TAURI__.core;
 const { listen } = window.__TAURI__.event;
 const { open, save } = window.__TAURI__.dialog;
 import { toStarCitizenFormat } from './input-utils.js';
+import { initializeUpdateChecker } from './update-checker.js';
 
 // Global error handler for uncaught errors
 window.addEventListener('error', async (event) =>
@@ -299,6 +300,16 @@ window.addEventListener("DOMContentLoaded", async () =>
 {
   initializeEventListeners();
   initializeTabSystem();
+
+  // Initialize update checker
+  try
+  {
+    await initializeUpdateChecker();
+  } catch (error)
+  {
+    console.error('Failed to initialize update checker:', error);
+    // Don't block app startup if update checker fails
+  }
 
   // Show default file indicator
   document.getElementById('loaded-file-indicator').style.display = 'flex';

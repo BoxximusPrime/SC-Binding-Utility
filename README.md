@@ -39,8 +39,7 @@ Star Citizen Joystick Mapper simplifies the complex task of configuring control 
 - **Automatic Binding Updates**: Select your Star Citizen installation directory and the app automatically updates your actionmaps
 - **Direct File Integration**: Seamlessly sync with Star Citizen keybinding files
 - **Profile Management**: Support for multiple joystick profiles (VKB, Thrustmaster, etc.)
-- **Change Detection
-**: Auto-save captures and applies configuration changes
+- **Change Detection**: Auto-save captures and applies configuration changes
 
 ## Advanced Features
 
@@ -49,6 +48,7 @@ Star Citizen Joystick Mapper simplifies the complex task of configuring control 
 - **Visual Export**: Export your joystick layout to an image
 - **Cleared Binding Display**: Visual distinction between cleared overrides and default bindings
 - **State Persistence**: Application remembers your visual view settings (pan, zoom, active view) between sessions
+- **Checks for Updates**: Automatically checks github for any updates
 
 ## Technical Stack
 

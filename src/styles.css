@@ -317,6 +317,7 @@ p[style*="color: red"] {
   border: 1px solid rgba(217, 83, 79, 0.3);
   border-radius: 6px;
   transition: all 0.3s ease;
+  position: relative;
 }
 
 .header-logo-icon {
@@ -1682,6 +1683,40 @@ input[type="checkbox"]:disabled:hover {
     opacity: 1;
     transform: scale(1);
   }
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* Update Indicator Badge */
+.header-update-info {
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  margin-left: 0.5rem;
+}
+
+.update-badge {
+  display: inline-block;
+  font-size: 1.1em;
+  color: #ffcc00;
+  transition: transform 0.2s ease;
+}
+
+.update-badge:hover {
+  transform: scale(1.2);
 }
 
 .modal-header {

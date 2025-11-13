@@ -1,6 +1,7 @@
 use std::sync::Mutex;
 use tauri::Manager;
 use log::{info, error};
+use tauri_plugin_opener::OpenerExt;
 
 mod keybindings;
 mod directinput;
@@ -760,6 +761,13 @@ fn get_resource_dir(app_handle: tauri::AppHandle) -> Result<String, String> {
     Ok(resource_dir.to_string_lossy().to_string())
 }
 
+#[tauri::command]
+async fn open_url(app_handle: tauri::AppHandle, url: String) -> Result<(), String> {
+    app_handle.opener()
+        .open_url(&url, None::<&str>)
+        .map_err(|e| format!("Failed to open URL: {}", e))
+}
+
 fn setup_logging(app_handle: &tauri::AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     use std::fs::OpenOptions;
     use std::io::Write;
@@ -827,7 +835,8 @@ pub fn run() {
             log_error,
             log_info,
             get_log_file_path,
-            get_resource_dir
+            get_resource_dir,
+            open_url
         ])
         .setup(|app| {
             // Set up logging
