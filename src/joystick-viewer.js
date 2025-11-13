@@ -906,7 +906,8 @@ function findAllBindingsForButton(button)
         }
         else if (typeof main === 'string')
         {
-            buttonInputString = main.toLowerCase();
+            // Store the input string but replace its joystick number with the current stick's number
+            buttonInputString = main.toLowerCase().replace(/^js[12]_/, jsPrefix);
         }
     }
     // Third priority: Parse button number from name (last resort fallback)
@@ -1076,8 +1077,8 @@ function findAllBindingsForHatDirection(hat, direction)
 
     if (typeof dirInput === 'string')
     {
-        // String format - use exact match
-        inputString = dirInput.toLowerCase();
+        // String format - replace joystick number with current stick's number
+        inputString = dirInput.toLowerCase().replace(/^js[12]_/, `js${jsNum}_`);
         patterns.push(inputString);
     }
     else if (typeof dirInput === 'object' && dirInput.id !== undefined)
