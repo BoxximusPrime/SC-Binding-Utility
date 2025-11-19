@@ -1368,6 +1368,73 @@ fn get_hid_axis_names(device_path: String) -> Result<std::collections::HashMap<u
     hid_reader::get_axis_names_from_descriptor(&device_path)
 }
 
+fn find_matching_hid_device(device_name: &str, hid_devices: &[hid_reader::HidDeviceListItem]) -> Option<hid_reader::HidDeviceListItem> {
+    hid_devices.iter().find(|dev| {
+        let product = dev.product.as_deref().unwrap_or("").to_lowercase();
+        let manufacturer = dev.manufacturer.as_deref().unwrap_or("").to_lowercase();
+        let combined = format!("{} {}", manufacturer, product).trim().to_string();
+        let search_name = device_name.to_lowercase();
+        
+        // Clean search name: remove (...) at the end which might be added by Gilrs/OS
+        // e.g. "VKB Gladiator NXT (Left)" -> "vkb gladiator nxt"
+        let clean_search_name = if let Some(idx) = search_name.find('(') {
+            search_name[..idx].trim().to_string()
+        } else {
+            search_name.clone()
+        };
+        
+        // 1. Product contains search name OR Search name contains product
+        if !product.is_empty() && (product.contains(&search_name) || search_name.contains(&product)) {
+            return true;
+        }
+        
+        // 2. Combined (Manuf + Prod) contains search name OR Search name contains Combined
+        if !combined.is_empty() && (combined.contains(&search_name) || search_name.contains(&combined)) {
+            return true;
+        }
+
+        // 3. Try with cleaned search name (removed parentheses)
+        if !clean_search_name.is_empty() {
+            if !product.is_empty() && (product.contains(&clean_search_name) || clean_search_name.contains(&product)) {
+                return true;
+            }
+            if !combined.is_empty() && (combined.contains(&clean_search_name) || clean_search_name.contains(&combined)) {
+                return true;
+            }
+        }
+
+        // 4. Token based matching (fuzzy)
+        // Split cleaned search name into tokens and check if they exist in the product/combined name
+        let search_tokens: Vec<&str> = clean_search_name.split_whitespace().collect();
+        if search_tokens.len() >= 2 {
+            let matches = search_tokens.iter().filter(|&t| {
+                // Skip very short words
+                if t.len() < 2 { return false; }
+                combined.contains(t)
+            }).count();
+            
+            // If most tokens match, assume it's the same device
+            if matches >= search_tokens.len() - 1 {
+                return true;
+            }
+        }
+        
+        false
+    }).cloned()
+}
+
+#[tauri::command]
+fn get_hid_device_path(device_name: String) -> Result<Option<String>, String> {
+    let hid_devices = hid_reader::list_hid_game_controllers()
+        .map_err(|e| format!("Failed to list HID devices: {}", e))?;
+    
+    if let Some(device) = find_matching_hid_device(&device_name, &hid_devices) {
+        Ok(Some(device.path))
+    } else {
+        Ok(None)
+    }
+}
+
 #[tauri::command]
 fn get_axis_names_for_device(device_name: String) -> Result<std::collections::HashMap<u32, String>, String> {
     // Try to find a matching HID device by name
@@ -1376,18 +1443,14 @@ fn get_axis_names_for_device(device_name: String) -> Result<std::collections::Ha
     let hid_devices = hid_reader::list_hid_game_controllers()
         .map_err(|e| format!("Failed to list HID devices: {}", e))?;
     
+    eprintln!("[Axis Names] Looking for device matching: '{}'", device_name);
+    eprintln!("[Axis Names] Available HID devices:");
+    for dev in &hid_devices {
+        eprintln!("  - Product: {:?}, Manufacturer: {:?}, Path: {:?}", dev.product, dev.manufacturer, dev.path);
+    }
+
     // Try to find a device with a matching name
-    let matching_device = hid_devices.iter().find(|dev| {
-        if let Some(product) = &dev.product {
-            // Simple case-insensitive substring match
-            product.to_lowercase().contains(&device_name.to_lowercase()) ||
-            device_name.to_lowercase().contains(&product.to_lowercase())
-        } else {
-            false
-        }
-    });
-    
-    if let Some(device) = matching_device {
+    if let Some(device) = find_matching_hid_device(&device_name, &hid_devices) {
         eprintln!("[Axis Names] Found HID device for '{}': {:?}", device_name, device.product);
         hid_reader::get_axis_names_from_descriptor(&device.path)
     } else {
@@ -1492,7 +1555,8 @@ pub fn run() {
             read_hid_device_report,
             parse_hid_report,
             get_hid_axis_names,
-            get_axis_names_for_device
+            get_axis_names_for_device,
+            get_hid_device_path
         ])
         .setup(|app| {
             // Set up logging

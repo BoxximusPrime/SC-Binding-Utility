@@ -8,6 +8,8 @@
   <link rel="stylesheet" href="template-editor.css" />
   <link rel="stylesheet" href="input-debugger.css" />
   <link rel="stylesheet" href="character-manager.css" />
+  <link rel="stylesheet" href="tooltip.css" />
+  <link rel="stylesheet" href="custom-dropdown.css" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Star Citizen Bindnig Utility</title>
   <script>
@@ -40,7 +42,7 @@
       <!-- Header Row 1 -->
       <div class="header-row-1">
         <div class="header-logo">
-          <h1>Star Citizen Binding Utility <span id="app-version">v0.7.1</span></h1>
+          <h1>Star Citizen Binding Utility <span id="app-version">v0.8.0</span></h1>
           <div id="update-info" class="header-update-info"></div>
         </div>
         <div class="header-actions">
@@ -1046,6 +1048,23 @@
             Page Name:
             <input type="text" id="template-page-name" placeholder="e.g., Left Stick" />
           </label>
+          <label style="margin-top: 1rem;">
+            Joystick ID Prefix:
+            <select id="template-page-prefix"
+              style="width: 100%; padding: 8px; background: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 4px;">
+              <option value="">Default (Auto)</option>
+              <option value="js1">js1</option>
+              <option value="js2">js2</option>
+              <option value="js3">js3</option>
+              <option value="js4">js4</option>
+              <option value="gp1">gp1</option>
+              <option value="gp2">gp2</option>
+            </select>
+            <div class="info-text" style="margin-top: 0.25rem;">
+              Force this page to use a specific device ID (e.g. js1) regardless of detection. Useful if your devices are
+              swapped.
+            </div>
+          </label>
         </div>
 
         <!-- Device Section -->
@@ -1244,7 +1263,7 @@
           <h3>✨ New Features</h3>
           <ul>
             <li><strong>New Axis Detection:</strong> Using a new backend for axis detection based on HID descriptors for
-              more accurate and dynamic axis mapping (shotout to bioticbynature for the HID descriptor parsing code).
+              more accurate and dynamic axis mapping (shotout to Biotic for the HID libraries).
             </li>
             <li><strong>Character Manager:</strong> Added a character manager to backup and deploy your saved character
               files to/from multiple Star Citizen installations.</li>
@@ -1252,17 +1271,14 @@
         <div class="whats-new-section">
           <h3>🔧 Improvements</h3>
           <ul>
-            <li><strong>Template Editor: </strong>Experimenting with page image size normalization for better
-              consistency.</li>
-            <li><strong>Visual view: </strong>now has better button/text rendering.</li>
+            <li><strong>Template Editor: </strong>With new axis system, axis remapping is now optional, and has been
+              simplified.</li>
+            <li><strong>Template Editor: </strong>Added device prefix override per page.</li>
           </ul>
         </div>
         <div class="whats-new-section">
           <h3>🐛 Bug Fixes</h3>
           <ul>
-            <li>Visual view axes no longer map to button types.</li>
-            <li>Potential fix for unbound actions.</li>
-            <li>Potential fix incorrect axis.</li>
           </ul>
         </div>
         <div class="whats-new-footer">

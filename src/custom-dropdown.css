@@ -1,0 +1,173 @@
+.custom-dropdown-wrapper {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+}
+
+.custom-dropdown-button {
+    width: 100%;
+    padding: 8px 12px;
+    background-color: var(--bg-dark, #252526);
+    color: var(--text-primary, #ffffff);
+    border: 1px solid var(--border-color, #3e3e42);
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.custom-dropdown-button:hover {
+    background-color: var(--bg-light, #3e3e42);
+    border-color: var(--accent-color);
+}
+
+.custom-dropdown-button.open {
+    background-color: var(--bg-light);
+    border-color: var(--accent-color);
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.custom-dropdown-button::after {
+    content: '▼';
+    font-size: 10px;
+    margin-left: 8px;
+    transition: transform 0.2s ease;
+}
+
+.custom-dropdown-button.open::after {
+    transform: rotate(180deg);
+}
+
+.custom-dropdown-menu {
+    display: none;
+    position: fixed;
+    background-color: var(--bg-dark);
+    border: 1px solid #434343;
+    border-radius: 4px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+    z-index: 10001;
+    max-height: 300px;
+    overflow-y: auto;
+    min-width: 250px;
+}
+
+.custom-dropdown-option-container {
+    display: flex;
+    align-items: stretch;
+    position: relative;
+    border-bottom: 1px solid var(--bg-light, #3e3e42);
+}
+
+.custom-dropdown-option-container:last-child {
+    border-bottom: none;
+}
+
+.custom-dropdown-option {
+    flex: 1;
+    padding: 10px 12px;
+    background-color: transparent;
+    color: var(--text-primary, #ffffff);
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background-color 0.15s ease;
+    font-family: inherit;
+    font-weight: 400;
+}
+
+.custom-dropdown-option:hover {
+    background-color: var(--bg-light, #3e3e42);
+}
+
+.custom-dropdown-option.selected {
+    background-color: #6f3535;
+    color: #FFF;
+    font-weight: 500;
+}
+
+.custom-dropdown-tooltip {
+    padding: 10px 12px;
+    background-color: var(--bg-light, #3e3e42);
+    color: var(--text-secondary, #cccccc);
+    font-size: 12px;
+    border-left: 2px solid var(--accent-color, #4a9eff);
+    line-height: 1.4;
+    white-space: normal;
+    max-width: 250px;
+    word-wrap: break-word;
+}
+
+/* Scrollbar styling for dropdown menu */
+.custom-dropdown-menu::-webkit-scrollbar {
+    width: 8px;
+}
+
+.custom-dropdown-menu::-webkit-scrollbar-track {
+    background: var(--bg-dark, #252526);
+    border-radius: 4px;
+}
+
+.custom-dropdown-menu::-webkit-scrollbar-thumb {
+    background: var(--border-color, #3e3e42);
+    border-radius: 4px;
+}
+
+.custom-dropdown-menu::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-color, #4a9eff);
+}
+
+/* Hover tooltip displayed to the right of dropdown */
+.custom-dropdown-hover-tooltip {
+    position: fixed;
+    background-color: var(--tooltip-bg, #1e1e1e);
+    color: var(--tooltip-text, #e0e0e0);
+    padding: 8px 12px;
+    border: 1.5px solid var(--tooltip-border);
+    border-radius: 6px;
+    font-size: 12px;
+    pointer-events: auto;
+    opacity: 0;
+    z-index: 10002;
+    box-shadow:
+        0 8px 16px rgba(0, 0, 0, 0.5),
+        0 0 20px rgba(74, 158, 255, 0.2),
+        inset 0 1px 1px rgba(255, 255, 255, 0.05);
+    white-space: normal;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-weight: 500;
+    max-width: 300px;
+    word-wrap: break-word;
+    display: inline-block;
+}
+
+.custom-dropdown-hover-tooltip.visible {
+    opacity: 1;
+}
+
+/* Arrow pointing back to the dropdown */
+.custom-dropdown-hover-tooltip::before {
+    content: '';
+    position: absolute;
+    right: 100%;
+    top: 50%;
+    margin-top: -13px;
+    border: 13px solid transparent;
+    border-right-color: var(--tooltip-border, #4a9eff);
+    margin-right: 0;
+}
+
+.custom-dropdown-hover-tooltip::after {
+    content: '';
+    position: absolute;
+    right: 100%;
+    top: 50%;
+    margin-top: -11px;
+    border: 11px solid transparent;
+    border-right-color: var(--tooltip-bg, #1e1e1e);
+}

@@ -3,6 +3,8 @@ const { listen } = window.__TAURI__.event;
 const { open, save } = window.__TAURI__.dialog;
 import { toStarCitizenFormat } from './input-utils.js';
 import { initializeUpdateChecker } from './update-checker.js';
+import { Tooltip } from './tooltip.js';
+import { CustomDropdown } from './custom-dropdown.js';
 
 // Global error handler for uncaught errors
 window.addEventListener('error', async (event) =>
@@ -515,7 +517,7 @@ window.showAlert = showAlert;
 
 function initializeWhatsNewModal()
 {
-  const CURRENT_VERSION = '0.7.1';
+  const CURRENT_VERSION = '0.8.0';
   const WHATS_NEW_KEY = 'whatsNew';
 
   // Check if the stored version matches the current version
@@ -530,7 +532,7 @@ function initializeWhatsNewModal()
 
 function showWhatsNewModal()
 {
-  const CURRENT_VERSION = '0.7.1';
+  const CURRENT_VERSION = '0.8.0';
   const WHATS_NEW_KEY = 'whatsNew';
 
   const modal = document.getElementById('whats-new-modal');
@@ -576,6 +578,77 @@ window.addEventListener("DOMContentLoaded", async () =>
   initializeTabSystem();
   initializeWhatsNewModal();
   initializeFontSizeScaling();
+
+  // Initialize tooltips
+  const searchInput = document.getElementById('search-input');
+  if (searchInput)
+  {
+    new Tooltip(searchInput, 'Type to filter actions by name. Supports partial matches. Use | to separate multiple terms.');
+  }
+
+  // Main header tabs
+  const tabWelcome = document.getElementById('tab-welcome');
+  if (tabWelcome) { new Tooltip(tabWelcome, 'Welcome & Getting Started'); }
+
+  const tabMain = document.getElementById('tab-main');
+  if (tabMain) { new Tooltip(tabMain, 'Edit Keybindings'); }
+
+  const tabVisual = document.getElementById('tab-visual');
+  if (tabVisual) { new Tooltip(tabVisual, 'Visual Joystick View'); }
+
+  const tabTemplate = document.getElementById('tab-template');
+  if (tabTemplate) { new Tooltip(tabTemplate, 'Create & Edit Templates'); }
+
+  const tabDebugger = document.getElementById('tab-debugger');
+  if (tabDebugger) { new Tooltip(tabDebugger, 'Test Input Devices'); }
+
+  const tabCharacter = document.getElementById('tab-character');
+  if (tabCharacter) { new Tooltip(tabCharacter, 'Manage Character Appearances'); }
+
+  const tabHelp = document.getElementById('tab-help');
+  if (tabHelp) { new Tooltip(tabHelp, 'Help & Keyboard Shortcuts'); }
+
+  const tabSettings = document.getElementById('tab-settings');
+  if (tabSettings) { new Tooltip(tabSettings, 'Settings & Debug Options'); }
+
+  // Action buttons in keybindings sidebar
+  const newKeybindingBtn = document.getElementById('new-keybinding-btn');
+  if (newKeybindingBtn) { new Tooltip(newKeybindingBtn, 'Start with a fresh keybinding set'); }
+
+  const configureJoystickBtn = document.getElementById('configure-joystick-mapping-btn');
+  if (configureJoystickBtn) { new Tooltip(configureJoystickBtn, 'Map your physical devices to device IDs if needed'); }
+
+  const clearSCBindsBtn = document.getElementById('clear-sc-binds-btn');
+  if (clearSCBindsBtn) { new Tooltip(clearSCBindsBtn, 'Generate a profile to unbind all devices'); }
+
+  // Initialize custom dropdown for activation mode with tooltips
+  const activationModeSelect = document.getElementById('activation-mode-select');
+  if (activationModeSelect)
+  {
+    const activationModeTooltips = {
+      '': 'Default behavior - activates on button press',
+      'press': 'Standard press activation',
+      'press_quicker': 'Press with reduced response time',
+      'delayed_press': 'Waits before activating (standard delay)',
+      'delayed_press_medium': 'Waits before activating (medium delay)',
+      'delayed_press_long': 'Waits before activating (long delay)',
+      'tap': 'Quick tap to activate',
+      'tap_quicker': 'Quick tap with reduced response time',
+      'double_tap': 'Requires two quick taps to activate',
+      'double_tap_nonblocking': 'Double tap that allows continuous input',
+      'hold': 'Activate by holding the button down',
+      'delayed_hold': 'Hold with a delay before activation',
+      'delayed_hold_long': 'Hold with a longer delay before activation',
+      'hold_no_retrigger': 'Hold without repeating while held',
+      'hold_toggle': 'Toggle between on/off by holding',
+      'smart_toggle': 'Intelligent toggle based on input pattern',
+      'all': 'Activate on any input type'
+    };
+
+    window.activationModeDropdown = new CustomDropdown(activationModeSelect, {
+      optionTooltips: activationModeTooltips
+    });
+  }
 
   // Initialize update checker
   try
@@ -1941,15 +2014,23 @@ function renderKeybindings()
       // Search filter - search in action name AND binding names
       if (searchTerm)
       {
-        const searchInAction = displayName.toLowerCase().includes(searchTerm) ||
-          action.name.toLowerCase().includes(searchTerm);
+        // Support OR operator with |
+        const terms = searchTerm.split('|').map(t => t.trim()).filter(t => t.length > 0);
 
-        const searchInBindings = action.bindings && action.bindings.some(binding =>
-          binding.display_name.toLowerCase().includes(searchTerm) ||
-          binding.input.toLowerCase().includes(searchTerm)
-        );
+        const matchesAny = terms.some(term =>
+        {
+          const searchInAction = displayName.toLowerCase().includes(term) ||
+            action.name.toLowerCase().includes(term);
 
-        if (!searchInAction && !searchInBindings)
+          const searchInBindings = action.bindings && action.bindings.some(binding =>
+            binding.display_name.toLowerCase().includes(term) ||
+            binding.input.toLowerCase().includes(term)
+          );
+
+          return searchInAction || searchInBindings;
+        });
+
+        if (!matchesAny)
         {
           return false;
         }
@@ -4154,13 +4235,24 @@ async function openActionBindingsModal(actionMapName, actionName, actionDisplayN
       const isUnbound = binding.input_type === 'Unknown';
       const removeButtonDisabled = isUnbound ? 'disabled' : '';
 
+      // Try to get button name from template
+      let buttonNameSuffix = '';
+      if (window.findButtonNameForInput && !isClearedBinding && binding.input_type === 'Joystick')
+      {
+        const buttonName = window.findButtonNameForInput(binding.input);
+        if (buttonName)
+        {
+          buttonNameSuffix = ` <span style="color: #aaa; font-size: 0.9em;">[${buttonName}]</span>`;
+        }
+      }
+
       html += `
         <div class="action-binding-item ${binding.is_default ? 'is-default' : ''} ${isClearedBinding ? 'is-cleared' : ''}" data-binding-index="${index}">
           <div class="action-binding-icon">${icon}</div>
           <div class="action-binding-device">
             ${binding.input_type}${defaultBadge}${customBadge}${clearedBadge}
           </div>
-          <div class="action-binding-input ${isClearedBinding ? 'cleared-text' : ''}">${isClearedBinding && binding.original_default ? `<span style="text-decoration: line-through;">${binding.original_default}</span>` : binding.display_name}</div>
+          <div class="action-binding-input ${isClearedBinding ? 'cleared-text' : ''}">${isClearedBinding && binding.original_default ? `<span style="text-decoration: line-through;">${binding.original_default}</span>` : binding.display_name}${buttonNameSuffix}</div>
           <div class="action-binding-activation">
             <select class="binding-activation-select" data-binding-index="${index}" ${isClearedBinding ? 'disabled' : ''}>
               <option value="">Default (Press)</option>
@@ -4193,6 +4285,37 @@ async function openActionBindingsModal(actionMapName, actionName, actionDisplayN
   listContainer.innerHTML = html;
   modal.style.display = 'flex';
 
+  // Initialize custom dropdowns for activation mode selects with tooltips
+  const activationModeTooltips = {
+    '': 'Default behavior - activates on button press',
+    'press': 'Standard press activation',
+    'press_quicker': 'Press with reduced response time',
+    'delayed_press': 'Waits before activating (standard delay)',
+    'delayed_press_medium': 'Waits before activating (medium delay)',
+    'delayed_press_long': 'Waits before activating (long delay)',
+    'tap': 'Quick tap to activate',
+    'tap_quicker': 'Quick tap with reduced response time',
+    'double_tap': 'Requires two quick taps to activate',
+    'double_tap_nonblocking': 'Double tap that allows continuous input',
+    'hold': 'Activate by holding the button down',
+    'delayed_hold': 'Hold with a delay before activation',
+    'delayed_hold_long': 'Hold with a longer delay before activation',
+    'hold_no_retrigger': 'Hold without repeating while held',
+    'hold_toggle': 'Toggle between on/off by holding',
+    'smart_toggle': 'Intelligent toggle based on input pattern',
+    'all': 'Activate on any input type'
+  };
+
+  const activationSelects = document.querySelectorAll('.binding-activation-select');
+  activationSelects.forEach(select =>
+  {
+    // Store the original select so we can read its value later
+    select.dataset.originalSelect = 'true';
+    new CustomDropdown(select, {
+      optionTooltips: activationModeTooltips
+    });
+  });
+
   // Setup event listeners for modal buttons
   document.getElementById('action-bindings-cancel-btn').onclick = closeActionBindingsModal;
   document.getElementById('action-bindings-save-btn').onclick = saveActionBindingsChanges;
@@ -4211,7 +4334,7 @@ async function saveActionBindingsChanges()
 
   const { actionMapName, actionName } = currentActionBindingsData;
 
-  // Get all activation mode selects
+  // Get all activation mode selects (the original select elements)
   const selects = document.querySelectorAll('.binding-activation-select');
 
   // Get the action data
@@ -4227,6 +4350,7 @@ async function saveActionBindingsChanges()
   selects.forEach(select =>
   {
     const index = parseInt(select.dataset.bindingIndex);
+    // Get value from the custom dropdown (it updates the hidden select)
     const newActivationMode = select.value || null;
     const binding = action.bindings[index];
     const currentActivationMode = binding.activation_mode || null;

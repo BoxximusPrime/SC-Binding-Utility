@@ -1,11 +1,12 @@
 {
     "name": "sc-joy-mapper",
-    "version": "0.7.1",
+    "version": "0.8.0",
     "type": "module",
     "scripts": {
         "dev": "vite",
         "build": "vite build",
-        "preview": "vite preview"
+        "preview": "vite preview",
+        "version-up": "node scripts/update-version.cjs"
     },
     "devDependencies": {
         "@tauri-apps/cli": "^2.9.0",

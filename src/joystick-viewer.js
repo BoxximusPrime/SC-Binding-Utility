@@ -1605,6 +1605,130 @@ const ViewerState = {
     }
 };
 
+// Global function to find a button name from an input string
+window.findButtonNameForInput = function (inputString)
+{
+    if (!currentTemplate || !inputString) return null;
+
+    inputString = inputString.toLowerCase().trim();
+
+    // Helper to check match
+    const checkMatch = (button, jsNum, direction = null) =>
+    {
+        const jsPrefix = `js${jsNum}_`;
+
+        // Logic adapted from extractButtonIdentifier but using passed jsNum
+        let buttonNum = null;
+        let calculatedInputString = null;
+
+        if (direction && button.inputs && button.inputs[direction])
+        {
+            const dirInput = button.inputs[direction];
+            if (typeof dirInput === 'string')
+            {
+                calculatedInputString = normalizeInputStringForStick(dirInput, jsPrefix);
+            }
+            else if (typeof dirInput === 'object' && dirInput.id !== undefined)
+            {
+                buttonNum = dirInput.id;
+            }
+        }
+        else
+        {
+            if (button.buttonId !== undefined && button.buttonId !== null)
+            {
+                buttonNum = button.buttonId;
+            }
+            else if (button.inputs && button.inputs.main)
+            {
+                const main = button.inputs.main;
+                if (typeof main === 'object' && main.id !== undefined)
+                {
+                    if (main.type === 'axis')
+                    {
+                        const directionSuffix = main.direction ? `_${main.direction}` : '';
+                        const axisString = `js${jsNum}_axis${main.id}${directionSuffix}`;
+                        calculatedInputString = normalizeInputStringForStick(axisString, jsPrefix);
+                    }
+                    else
+                    {
+                        buttonNum = main.id;
+                    }
+                }
+                else if (typeof main === 'string')
+                {
+                    calculatedInputString = normalizeInputStringForStick(main, jsPrefix);
+                }
+            }
+            else if (button.inputType === 'axis' && button.inputId !== undefined && button.inputId !== null)
+            {
+                if (typeof button.inputId === 'string' && button.inputId.match(/^(x|y|z|rotx|roty|rotz|slider)$/i))
+                {
+                    calculatedInputString = normalizeInputStringForStick(`js${jsNum}_${button.inputId.toLowerCase()}`, jsPrefix);
+                }
+                else
+                {
+                    const directionSuffix = button.axisDirection ? `_${button.axisDirection}` : '';
+                    const axisString = `js${jsNum}_axis${button.inputId}${directionSuffix}`;
+                    calculatedInputString = normalizeInputStringForStick(axisString, jsPrefix);
+                }
+            }
+            else if (button.inputType === 'button' && button.inputId !== undefined && button.inputId !== null)
+            {
+                buttonNum = button.inputId;
+            }
+        }
+
+        if (calculatedInputString === inputString) return true;
+        if (buttonNum !== null && inputString === `${jsPrefix}button${buttonNum}`) return true;
+
+        return false;
+    };
+
+    // Iterate pages
+    let pages = [];
+    if (currentTemplate.pages && currentTemplate.pages.length > 0)
+    {
+        pages = currentTemplate.pages;
+    }
+    else
+    {
+        // Legacy support
+        if (currentTemplate.leftStick) pages.push({ ...currentTemplate.leftStick, joystickNumber: 1 });
+        if (currentTemplate.rightStick) pages.push({ ...currentTemplate.rightStick, joystickNumber: 2 });
+    }
+
+    for (const page of pages)
+    {
+        const jsNum = page.joystickNumber || 1;
+        const buttons = page.buttons || [];
+
+        for (const button of buttons)
+        {
+            if (button.buttonType === 'hat4way')
+            {
+                const directions = ['up', 'down', 'left', 'right', 'push'];
+                for (const dir of directions)
+                {
+                    if (checkMatch(button, jsNum, dir))
+                    {
+                        return `${button.name} [${dir.charAt(0).toUpperCase() + dir.slice(1)}]`;
+                    }
+                }
+            }
+            else
+            {
+                if (checkMatch(button, jsNum))
+                {
+                    return button.name;
+                }
+            }
+        }
+    }
+
+    return null;
+};
+
 // ========================================
 // Drawing Bounds Tracking (for export)
 // ========================================

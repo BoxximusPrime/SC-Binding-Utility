@@ -689,6 +689,10 @@ function getInputDisplayInfo(button, jsNumOverride = null)
 
     const jsNum = jsNumOverride || getCurrentStickJoystickNumber();
 
+    // Get current page prefix
+    const currentPage = getCurrentPage();
+    const pagePrefix = currentPage ? currentPage.joystick_prefix : null;
+
     const normalizePrefix = (inputString) =>
     {
         if (!inputString)
@@ -697,6 +701,16 @@ function getInputDisplayInfo(button, jsNumOverride = null)
         }
 
         const lower = inputString.toLowerCase();
+
+        // If we have a page prefix, use it
+        if (pagePrefix)
+        {
+            if (lower.match(/^(js|gp)\d+_/))
+            {
+                return lower.replace(/^(js|gp)\d+_/, `${pagePrefix}_`);
+            }
+        }
+
         if (lower.match(/^(js|gp)\d+_/))
         {
             return lower.replace(/^(js|gp)\d+_/, `js${jsNum}_`);
@@ -2406,8 +2420,17 @@ async function startHatInputDetection(direction)
             let adjustedInputString = result.input_string;
 
             // Replace jsX_ with the current stick's template joystick number (js1 or js2)
-            adjustedInputString = adjustedInputString.replace(/^(js|gp)\d+_/, `js${templateJsNum}_`);
-            console.log('Adjusted input string for', direction, '(remapped to template js number):', adjustedInputString);
+            // OR use the page's explicit prefix if set (e.g. "js1", "gp1")
+            if (currentPage && currentPage.joystick_prefix)
+            {
+                adjustedInputString = adjustedInputString.replace(/^(js|gp)\d+_/, `${currentPage.joystick_prefix}_`);
+                console.log(`Adjusted input string for ${direction} using page prefix ${currentPage.joystick_prefix}:`, adjustedInputString);
+            }
+            else
+            {
+                adjustedInputString = adjustedInputString.replace(/^(js|gp)\d+_/, `js${templateJsNum}_`);
+                console.log('Adjusted input string for', direction, '(remapped to template js number):', adjustedInputString);
+            }
 
             // Store the adjusted Star Citizen input string in tempButton
             if (tempButton)
@@ -2555,8 +2578,17 @@ async function startInputDetection()
             let adjustedInputString = result.input_string;
 
             // Replace jsX_ with the current stick's template joystick number (js1 or js2)
-            adjustedInputString = adjustedInputString.replace(/^(js|gp)\d+_/, `js${templateJsNum}_`);
-            console.log('Adjusted input string (remapped to template js number):', adjustedInputString);
+            // OR use the page's explicit prefix if set (e.g. "js1", "gp1")
+            if (currentPage && currentPage.joystick_prefix)
+            {
+                adjustedInputString = adjustedInputString.replace(/^(js|gp)\d+_/, `${currentPage.joystick_prefix}_`);
+                console.log(`Adjusted input string using page prefix ${currentPage.joystick_prefix}:`, adjustedInputString);
+            }
+            else
+            {
+                adjustedInputString = adjustedInputString.replace(/^(js|gp)\d+_/, `js${templateJsNum}_`);
+                console.log('Adjusted input string (remapped to template js number):', adjustedInputString);
+            }
 
             // Convert to Star Citizen axis format if it's an axis (e.g., js1_axis2 -> js1_y)
             const scFormatString = toStarCitizenFormat(adjustedInputString);
@@ -2816,6 +2848,7 @@ function prepareSaveData()
             device_uuid: page.device_uuid || '',
             device_name: page.device_name || '',
             joystickNumber: page.joystickNumber || 1,
+            joystick_prefix: page.joystick_prefix || '',
             axis_profile: page.axis_profile || 'default',
             axis_mapping: page.axis_mapping || {},
             image_path: page.image_path || '',
@@ -2891,12 +2924,6 @@ async function saveTemplate()
     {
         await showAlert('Please enter a template name', 'Missing Template Name');
         document.getElementById('template-name').focus();
-        return;
-    }
-
-    if (!loadedImage)
-    {
-        await showAlert('Please load a joystick image', 'No Image Loaded');
         return;
     }
 

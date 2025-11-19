@@ -29,6 +29,7 @@ const state = {
     axisDetectionIntervalId: null,
     lastAxisValues: {},
     lastAxisUpdateTime: {},
+    axisBitDepths: new Map(), // Track bit depths per axis
     // HID axis names from descriptor
     detectedAxisNames: {} // Map of axis_index -> axis_name from HID descriptor
 };
@@ -40,6 +41,7 @@ const dom = {
     pageModal: null,
     pageModalTitle: null,
     pageNameInput: null,
+    pagePrefixSelect: null,
     pageDeviceSelect: null,
     detectDeviceBtn: null,
     detectedDeviceInfo: null,
@@ -316,6 +318,7 @@ function openPageModal(pageId = null)
         {
             dom.pageModalTitle.textContent = `Edit Page: ${page.name || 'Untitled Page'}`;
             dom.pageNameInput.value = page.name || '';
+            if (dom.pagePrefixSelect) dom.pagePrefixSelect.value = page.joystick_prefix || '';
 
             // Show existing device info
             state.detectedDeviceUuid = page.device_uuid;
@@ -372,6 +375,7 @@ function openPageModal(pageId = null)
     {
         dom.pageModalTitle.textContent = 'Add Page';
         dom.pageNameInput.value = '';
+        if (dom.pagePrefixSelect) dom.pagePrefixSelect.value = '';
         dom.detectedDeviceName.textContent = 'No device detected';
         dom.detectedDeviceUuid.style.display = 'none';
         dom.detectedDeviceInfo.classList.remove('detected');
@@ -425,6 +429,7 @@ function closePageModal()
 function savePageFromModal()
 {
     const name = dom.pageNameInput.value.trim() || 'Untitled Page';
+    const joystickPrefix = dom.pagePrefixSelect ? dom.pagePrefixSelect.value : '';
 
     // Use detected device if available, otherwise fall back to dropdown selection
     let deviceUuid = state.detectedDeviceUuid || '';
@@ -453,13 +458,52 @@ function savePageFromModal()
         const page = state.template.pages.find(p => p.id === state.modalEditingPageId);
         if (page)
         {
+            // Check if prefix changed
+            const oldPrefix = page.joystick_prefix || '';
+            const newPrefix = joystickPrefix || '';
+
             page.name = name;
+            page.joystick_prefix = joystickPrefix;
             page.device_uuid = deviceUuid;
             page.device_name = deviceName;
             page.axis_mapping = axisMapping;
             page.image_path = imagePath;
             page.image_data_url = imageDataUrl;
             page.mirror_from_page_id = mirrorFromPageId;
+
+            // If prefix changed, update all existing button inputs
+            // Also enforce if a prefix is set, to ensure all buttons match
+            if (oldPrefix !== newPrefix || newPrefix)
+            {
+                // If new prefix is set, use it. Otherwise revert to js{joystickNumber}
+                const targetPrefix = newPrefix || `js${page.joystickNumber || 1}`;
+
+                if (page.buttons && page.buttons.length > 0)
+                {
+                    console.log(`[TemplateEditorV2] Prefix changed from '${oldPrefix}' to '${newPrefix}'. Updating ${page.buttons.length} buttons to use '${targetPrefix}'...`);
+
+                    page.buttons.forEach(button =>
+                    {
+                        if (button.inputs)
+                        {
+                            Object.keys(button.inputs).forEach(key =>
+                            {
+                                const val = button.inputs[key];
+                                if (typeof val === 'string')
+                                {
+                                    // Replace jsX_ or gpX_ with targetPrefix_
+                                    // Regex: start with js or gp, followed by digits, then underscore
+                                    const newVal = val.replace(/^(js|gp)\d+_/, `${targetPrefix}_`);
+                                    if (newVal !== val)
+                                    {
+                                        button.inputs[key] = newVal;
+                                    }
+                                }
+                            });
+                        }
+                    });
+                }
+            }
 
             // Refresh the canvas if this is the currently displayed page
             // Check both state.selectedPageId and window.currentPageId for compatibility
@@ -538,6 +582,7 @@ function savePageFromModal()
         state.template.pages.push({
             id: generatePageId(),
             name,
+            joystick_prefix: joystickPrefix,
             device_uuid: deviceUuid,
             device_name: deviceName,
             axis_mapping: axisMapping,
@@ -744,9 +789,24 @@ function saveCustomAxisMapping()
     closeCustomAxisModal();
 }
 
-function resetCustomAxisMapping()
+async function resetCustomAxisMapping()
 {
+    // Clear current mapping first
     state.modalCustomMapping = {};
+
+    // If we have a device selected, try to auto-map from HID descriptor
+    if (state.detectedDeviceName)
+    {
+        // Reload axis names to be sure
+        await loadAxisNamesForDevice(state.detectedDeviceName);
+
+        // Generate mapping from detected axis names
+        if (Object.keys(state.detectedAxisNames).length > 0)
+        {
+            state.modalCustomMapping = autoMapFromHidDescriptor();
+        }
+    }
+
     renderCustomAxisTable();
     updateAxisSummary();
 }
@@ -1074,6 +1134,8 @@ async function loadAxisNamesForDevice(deviceName)
 async function startAxisDetection()
 {
     const deviceUuid = state.detectedDeviceUuid;
+    const deviceName = state.detectedDeviceName;
+
     if (!deviceUuid)
     {
         dom.axisDetectionStatus.textContent = 'Please detect a device first using the button above.';
@@ -1089,11 +1151,67 @@ async function startAxisDetection()
 
     state.isDetectingAxis = true;
     state.lastAxisValues = {};
+    state.hidDevicePath = null;
 
     dom.startAxisDetectionBtn.style.display = 'none';
     dom.stopAxisDetectionBtn.style.display = 'inline-flex';
     dom.axisDetectionStatus.textContent = '🎯 Detecting... Move any axis on your device!';
     dom.axisDetectionStatus.style.color = '#ffc107';
+
+    // Try to get HID path for this device to use HID polling (more accurate and consistent with debugger)
+    try
+    {
+        if (deviceName)
+        {
+            console.log('[Axis Detection] Attempting to get HID path for:', deviceName);
+            state.hidDevicePath = await invoke('get_hid_device_path', { deviceName });
+
+            // Fallback: try to find by listing HID devices if direct lookup failed
+            if (!state.hidDevicePath)
+            {
+                console.log('[Axis Detection] Direct lookup failed, listing all HID devices...');
+                try
+                {
+                    const hidDevices = await invoke('list_hid_devices');
+                    // Try to find a match - check if names contain each other
+                    const match = hidDevices.find(d =>
+                    {
+                        const p = (d.product || '').toLowerCase();
+                        const n = deviceName.toLowerCase();
+                        return p && (p.includes(n) || n.includes(p));
+                    });
+
+                    if (match)
+                    {
+                        state.hidDevicePath = match.path;
+                        console.log('[Axis Detection] Found matching HID device via list:', match.product, match.path);
+                    }
+                } catch (err)
+                {
+                    console.warn('[Axis Detection] Failed to list HID devices:', err);
+                }
+            }
+
+            console.log('[Axis Detection] Got HID path:', state.hidDevicePath);
+            if (state.hidDevicePath)
+            {
+                console.log('[Axis Detection] ✓ Using HID polling with path:', state.hidDevicePath);
+                pollHidAxisMovement();
+                return;
+            } else
+            {
+                console.log('[Axis Detection] ✗ No HID path returned, using DirectInput');
+            }
+        } else
+        {
+            console.log('[Axis Detection] ✗ No device name available');
+        }
+    } catch (e)
+    {
+        console.warn('[Axis Detection] Failed to get HID path, falling back to DirectInput:', e);
+    }
+
+    console.log('[Axis Detection] Using DirectInput polling');
 
     // Poll for axis movement using recursive async loop instead of setInterval
     // This ensures we don't stack up calls if backend is slow
@@ -1149,6 +1267,85 @@ async function startAxisDetection()
     pollAxisMovement();
 }
 
+async function pollHidAxisMovement()
+{
+    if (!state.isDetectingAxis || !state.hidDevicePath)
+    {
+        return;
+    }
+
+    const invoke = getInvoke();
+
+    try
+    {
+        // Read raw HID report
+        const report = await invoke('read_hid_device_report', {
+            devicePath: state.hidDevicePath,
+            timeoutMs: 50
+        });
+
+        if (report && report.length > 0)
+        {
+            // Parse the report
+            const axisReport = await invoke('parse_hid_report', {
+                report: report
+            });
+
+            if (axisReport && axisReport.axis_values)
+            {
+                // Process each axis
+                for (const [axisIdStr, value] of Object.entries(axisReport.axis_values))
+                {
+                    const axisId = parseInt(axisIdStr);
+
+                    // Get bit depth for this axis
+                    const bitDepth = axisReport.axis_bit_depths ? axisReport.axis_bit_depths[axisIdStr] : null;
+
+                    // Track max bit depth
+                    if (bitDepth)
+                    {
+                        const currentMax = state.axisBitDepths.get(axisId) || 0;
+                        if (bitDepth > currentMax)
+                        {
+                            state.axisBitDepths.set(axisId, bitDepth);
+                        }
+                    }
+
+                    const maxObservedBitDepth = state.axisBitDepths.get(axisId) || bitDepth;
+                    const is16Bit = maxObservedBitDepth > 8 || axisReport.is_16bit;
+
+                    // Check for change
+                    const lastValue = state.lastAxisValues[axisId] || 0;
+                    // Use a small threshold like hid-debugger (basically any change)
+                    // For 8-bit (255), 1 is ~0.4%. For 16-bit (65535), 1 is ~0.0015%
+                    // We use 2 to filter out minimal noise
+                    const changed = Math.abs(value - lastValue) > 2;
+
+                    if (changed)
+                    {
+                        state.lastAxisValues[axisId] = value;
+                        highlightAxis(axisId, value, is16Bit);
+                    }
+                }
+            }
+        }
+    }
+    catch (error)
+    {
+        // Ignore timeouts
+        if (!error.toString().includes('timeout'))
+        {
+            console.error('HID Axis detection error:', error);
+        }
+    }
+
+    // Schedule next poll
+    if (state.isDetectingAxis)
+    {
+        setTimeout(pollHidAxisMovement, 10);
+    }
+}
+
 function stopAxisDetection()
 {
     state.isDetectingAxis = false;
@@ -1172,10 +1369,13 @@ function stopAxisDetection()
     });
 }
 
-function highlightAxis(axisId, value)
+function highlightAxis(axisId, value, is16Bit = false)
 {
+    // Convert 1-based axis ID from backend to 0-based raw index for UI
+    const rawIndex = axisId - 1;
+
     // Find the row for this axis
-    const row = document.querySelector(`.custom-axis-row[data-raw-index="${axisId}"]`);
+    const row = document.querySelector(`.custom-axis-row[data-raw-index="${rawIndex}"]`);
     if (!row) return;
 
     // Highlight the row with auto-fade after 2 seconds
@@ -1206,7 +1406,27 @@ function highlightAxis(axisId, value)
         row.appendChild(valueDisplay);
     }
 
-    valueDisplay.textContent = `Value: ${value.toFixed(3)}`;
+    // Format value based on type
+    let displayText;
+    if (typeof value === 'number')
+    {
+        if (Number.isInteger(value))
+        {
+            // Integer (HID raw value)
+            const maxVal = is16Bit ? 65535 : 255;
+            const pct = Math.round((value / maxVal) * 100);
+            displayText = `Value: ${value} (${pct}%)`;
+        } else
+        {
+            // Float (DirectInput value -1.0 to 1.0)
+            displayText = `Value: ${value.toFixed(3)}`;
+        }
+    } else
+    {
+        displayText = `Value: ${value}`;
+    }
+
+    valueDisplay.textContent = displayText;
     valueDisplay.classList.add('active');
 
     // Update status
@@ -1276,6 +1496,7 @@ export async function initializeTemplatePagesUI(options = {})
     dom.pageModal = document.getElementById('template-page-modal');
     dom.pageModalTitle = document.getElementById('template-page-modal-title');
     dom.pageNameInput = document.getElementById('template-page-name');
+    dom.pagePrefixSelect = document.getElementById('template-page-prefix');
     dom.pageDeviceSelect = document.getElementById('page-device-select');
     dom.detectDeviceBtn = document.getElementById('detect-device-btn');
     dom.detectedDeviceInfo = document.getElementById('detected-device-info');

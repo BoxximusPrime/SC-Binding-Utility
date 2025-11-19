@@ -1,0 +1,82 @@
+:root {
+    --tooltip-bg: #121212;
+    --tooltip-text: #e0e0e0;
+    --tooltip-border: #6b6b6b;
+}
+
+.custom-tooltip {
+    position: fixed;
+    background-color: var(--tooltip-bg, #1e1e1e);
+    color: var(--tooltip-text, #e0e0e0);
+    padding: 8px 12px;
+    border: 2px solid var(--tooltip-border, #4a9eff);
+    border-radius: 6px;
+    font-size: 12px;
+    pointer-events: none;
+    opacity: 0;
+    z-index: 10000;
+    box-shadow:
+        0 8px 16px rgba(0, 0, 0, 0.5),
+        0 0 20px rgba(0, 0, 0, 0.2),
+        inset 0 1px 1px rgba(255, 255, 255, 0.05);
+    white-space: nowrap;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-weight: 500;
+}
+
+.custom-tooltip.visible {
+    opacity: 1;
+}
+
+/* Arrow common styles */
+.custom-tooltip::after,
+.custom-tooltip::before {
+    content: '';
+    position: absolute;
+    border-style: solid;
+    display: none;
+}
+
+/* Tooltip above (arrow points down) */
+.custom-tooltip.tooltip-top::after,
+.custom-tooltip.tooltip-top::before {
+    display: block;
+    top: 100%;
+    left: 50%;
+}
+
+/* The border arrow (larger) */
+.custom-tooltip.tooltip-top::before {
+    margin-left: -8px;
+    border-width: 8px;
+    border-color: var(--tooltip-border) transparent transparent transparent;
+}
+
+/* The background arrow (smaller, covers part of border arrow) */
+.custom-tooltip.tooltip-top::after {
+    margin-left: -6px;
+    border-width: 6px;
+    border-color: var(--tooltip-bg, #1e1e1e) transparent transparent transparent;
+}
+
+/* Tooltip below (arrow points up) */
+.custom-tooltip.tooltip-bottom::after,
+.custom-tooltip.tooltip-bottom::before {
+    display: block;
+    bottom: 100%;
+    left: 50%;
+}
+
+/* The border arrow */
+.custom-tooltip.tooltip-bottom::before {
+    margin-left: -8px;
+    border-width: 8px;
+    border-color: transparent transparent var(--tooltip-border, #4a9eff) transparent;
+}
+
+/* The background arrow */
+.custom-tooltip.tooltip-bottom::after {
+    margin-left: -6px;
+    border-width: 6px;
+    border-color: transparent transparent var(--tooltip-bg, #1e1e1e) transparent;
+}
