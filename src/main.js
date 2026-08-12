@@ -436,7 +436,7 @@ function renderWhatsNewContent(currentVersion)
 
 function initializeWhatsNewModal()
 {
-  const CURRENT_VERSION = '1.2.1';
+  const CURRENT_VERSION = '1.2.2';
   const WHATS_NEW_KEY = 'whatsNew';
 
   renderWhatsNewContent(CURRENT_VERSION);
@@ -453,7 +453,7 @@ function initializeWhatsNewModal()
 
 function showWhatsNewModal()
 {
-  const CURRENT_VERSION = '1.2.1';
+  const CURRENT_VERSION = '1.2.2';
   const WHATS_NEW_KEY = 'whatsNew';
 
   const modal = document.getElementById('whats-new-modal');
@@ -557,6 +557,8 @@ window.addEventListener("DOMContentLoaded", async () =>
   initializeHelpNavigation();
   initializeHelpWizard();
   initializeSplitResizer();
+  initializeBindingsSidebar();
+  initializeBindingsPanelResponsiveness();
   initializeWhatsNewModal();
   initializeFontSizeScaling();
 
@@ -819,8 +821,14 @@ function initializeSplitResizer()
   const savedWidth = localStorage.getItem('splitViewWidth');
   if (savedWidth)
   {
+    const wrapperWidth = wrapper.getBoundingClientRect().width;
+    const parsedWidth = Number.parseFloat(savedWidth);
+    const clampedWidth = wrapperWidth > 400 && Number.isFinite(parsedWidth)
+      ? Math.min(Math.max(parsedWidth, 200), wrapperWidth - 208)
+      : parsedWidth;
+
     leftPane.style.flex = 'none';
-    leftPane.style.width = savedWidth;
+    leftPane.style.width = Number.isFinite(clampedWidth) ? `${clampedWidth}px` : savedWidth;
   }
 
   resizer.addEventListener('mousedown', (e) =>
@@ -870,6 +878,77 @@ function initializeSplitResizer()
 }
 
 /**
+ * Initialize the collapsible filters sidebar shared by list and split views.
+ */
+function initializeBindingsSidebar()
+{
+  const sidebar = document.getElementById('bindings-sidebar');
+  const toggle = document.getElementById('bindings-sidebar-toggle');
+  const icon = toggle?.querySelector('.sidebar-toggle-icon');
+
+  if (!sidebar || !toggle || !icon) return;
+
+  const setCollapsed = (isCollapsed) =>
+  {
+    sidebar.classList.toggle('is-collapsed', isCollapsed);
+    toggle.setAttribute('aria-expanded', String(!isCollapsed));
+
+    const label = isCollapsed ? 'Restore filters sidebar' : 'Minimize filters sidebar';
+    toggle.setAttribute('aria-label', label);
+    toggle.title = label;
+    icon.textContent = isCollapsed ? '\u203a' : '\u2039';
+
+    localStorage.setItem('bindingsSidebarCollapsed', String(isCollapsed));
+
+    requestAnimationFrame(() =>
+    {
+      window.dispatchEvent(new Event('resize'));
+      if (window.refreshVisualView && document.getElementById('tab-content-bindings')?.classList.contains('split-mode'))
+      {
+        window.refreshVisualView(true);
+      }
+    });
+  };
+
+  setCollapsed(localStorage.getItem('bindingsSidebarCollapsed') === 'true');
+  toggle.addEventListener('click', () => setCollapsed(!sidebar.classList.contains('is-collapsed')));
+}
+
+/**
+ * Reflow binding rows based on the list pane itself, not the full window width.
+ * This keeps split view responsive as its resizer changes the available space.
+ */
+function initializeBindingsPanelResponsiveness()
+{
+  const panel = document.querySelector('#bindings-list-view .bindings-panel');
+  const viewsWrapper = document.getElementById('bindings-views-wrapper');
+  if (!panel) return;
+
+  const updateLayout = () =>
+  {
+    const panelRect = panel.getBoundingClientRect();
+    const wrapperRect = viewsWrapper?.getBoundingClientRect();
+    const visibleLeft = Math.max(panelRect.left, wrapperRect?.left ?? panelRect.left, 0);
+    const visibleRight = Math.min(panelRect.right, wrapperRect?.right ?? panelRect.right, window.innerWidth);
+    const width = Math.max(0, visibleRight - visibleLeft);
+
+    panel.classList.toggle('is-compact', width < 1000);
+    panel.classList.toggle('is-stacked', width < 620);
+  };
+
+  updateLayout();
+
+  if (typeof ResizeObserver === 'function')
+  {
+    const observer = new ResizeObserver(updateLayout);
+    observer.observe(panel);
+    if (viewsWrapper) observer.observe(viewsWrapper);
+  }
+
+  window.addEventListener('resize', updateLayout);
+}
+
+/**
  * Switch between list, visual, and controls views within the Bindings tab
  */
 function switchBindingsView(viewName)
@@ -912,8 +991,15 @@ function switchBindingsView(viewName)
       const savedWidth = localStorage.getItem('splitViewWidth');
       if (savedWidth)
       {
+        const wrapper = document.getElementById('bindings-views-wrapper');
+        const wrapperWidth = wrapper?.getBoundingClientRect().width || 0;
+        const parsedWidth = Number.parseFloat(savedWidth);
+        const clampedWidth = wrapperWidth > 400 && Number.isFinite(parsedWidth)
+          ? Math.min(Math.max(parsedWidth, 200), wrapperWidth - 208)
+          : parsedWidth;
+
         container.style.flex = 'none';
-        container.style.width = savedWidth;
+        container.style.width = Number.isFinite(clampedWidth) ? `${clampedWidth}px` : savedWidth;
       }
     }
   });

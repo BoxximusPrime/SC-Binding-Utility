@@ -58,7 +58,7 @@
       <!-- Header Row 1 -->
       <div class="header-row-1">
         <div class="header-logo">
-          <h1>Boxxy Binder<span id="app-version">v1.2.1</span></h1>
+          <h1>Boxxy Binder<span id="app-version">v1.2.2</span></h1>
           <div id="update-info" class="header-update-info"></div>
         </div>
         <div id="theme-switcher" class="theme-switcher-container">
@@ -229,40 +229,47 @@
 
             <div class="main-content">
               <!-- Sidebar - Categories and Filters -->
-              <aside class="sidebar">
-                <div class="filter-section">
-                  <h3>Actions</h3>
-                  <button id="swap-joystick-prefixes-btn" class="btn btn-secondary" style="width: 100%;">🔄 Swap Device
-                    Prefixes</button>
+              <aside id="bindings-sidebar" class="sidebar">
+                <button id="bindings-sidebar-toggle" class="sidebar-toggle" type="button" aria-expanded="true"
+                  aria-controls="bindings-sidebar-content" aria-label="Minimize filters sidebar"
+                  title="Minimize filters sidebar">
+                  <span class="sidebar-toggle-icon" aria-hidden="true">&#8249;</span>
+                </button>
+                <div id="bindings-sidebar-content" class="sidebar-content">
+                  <div class="filter-section">
+                    <h3>Actions</h3>
+                    <button id="swap-joystick-prefixes-btn" class="btn btn-secondary" style="width: 100%;">🔄 Swap Device
+                      Prefixes</button>
                     <button id="configure-joystick-mapping-btn" class="btn btn-secondary" style="width: 100%;">⚙️ Manage
                       Devices</button>
-                      <button id="clear-sc-binds-btn" class="btn btn-secondary" style="width: 100%;">🗑️ Generate Unbind
-                        Profile</button>
-                </div>
+                    <button id="clear-sc-binds-btn" class="btn btn-secondary" style="width: 100%;">🗑️ Generate Unbind
+                      Profile</button>
+                  </div>
 
-                <div class=" filter-section">
-                  <h3>Filters</h3>
-                  <div class="category-list">
-                    <button class="category-item  category-item-indented active" data-filter="all">All</button>
-                    <button class="category-item  category-item-indented" data-filter="keyboard">Keyboard</button>
-                    <button class="category-item  category-item-indented" data-filter="mouse">Mouse</button>
-                    <button class="category-item  category-item-indented" data-filter="joystick">Joystick</button>
-                    <button class="category-item  category-item-indented" data-filter="gamepad">Gamepad</button>
-                    <div class="checkbox-container" id="customized-only-wrapper">
-                      <input type="checkbox" id="customized-only-checkbox" />
-                      <label for="customized-only-checkbox">Customized Only</label>
-                    </div>
-                    <div class="checkbox-container" id="show-unbound-wrapper">
-                      <input type="checkbox" id="show-unbound-checkbox" checked />
-                      <label for="show-unbound-checkbox">Show Unbound Actions</label>
+                  <div class="filter-section">
+                    <h3>Filters</h3>
+                    <div class="category-list">
+                      <button class="category-item category-item-indented active" data-filter="all">All</button>
+                      <button class="category-item category-item-indented" data-filter="keyboard">Keyboard</button>
+                      <button class="category-item category-item-indented" data-filter="mouse">Mouse</button>
+                      <button class="category-item category-item-indented" data-filter="joystick">Joystick</button>
+                      <button class="category-item category-item-indented" data-filter="gamepad">Gamepad</button>
+                      <div class="checkbox-container" id="customized-only-wrapper">
+                        <input type="checkbox" id="customized-only-checkbox" />
+                        <label for="customized-only-checkbox">Customized Only</label>
+                      </div>
+                      <div class="checkbox-container" id="show-unbound-wrapper">
+                        <input type="checkbox" id="show-unbound-checkbox" checked />
+                        <label for="show-unbound-checkbox">Show Unbound Actions</label>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div class="category-section">
-                  <h3>Categories</h3>
-                  <div id="category-list" class="category-list">
-                    <!-- Categories will be populated here -->
+                  <div class="category-section">
+                    <h3>Categories</h3>
+                    <div id="category-list" class="category-list">
+                      <!-- Categories will be populated here -->
+                    </div>
                   </div>
                 </div>
               </aside>

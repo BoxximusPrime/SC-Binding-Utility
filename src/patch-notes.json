@@ -27,6 +27,20 @@
                     "<strong>XBOX controller support:</strong> fixed XBOX controller bindings not being displayed in visual mode."
                 ]
             }
+        },
+        {
+            "version": "1.2.2",
+            "notes": {
+                "📋 Updates": [
+                    "<strong>Collapsible keybindings sidebar:</strong> The Actions, Filters, and Categories sidebar can now be minimized and restored in both List and Split views. Your preference is remembered between sessions.",
+                    "<strong>Improved compact layouts:</strong> The keybindings header, search field, binding tags, and action controls now reflow to make better use of narrow windows and split panes."
+                ],
+                "🐛 Bug Fixes": [
+                    "<strong>Action controls stay accessible:</strong> Manage, Clear, Reset, Bind, and Locate now move to their own row before they can overflow or become unclickable.",
+                    "<strong>Binding tags wrap correctly:</strong> Long or multiple bindings no longer collapse into awkward narrow pills when horizontal space is limited.",
+                    "<strong>Safer Split View sizing:</strong> Saved pane widths are constrained to the available window, and Split View stacks vertically on smaller windows so both panes remain usable."
+                ]
+            }
         }
     ]
 }
